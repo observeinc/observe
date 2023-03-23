@@ -1,0 +1,58 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "observe_lib",
+    srcs = [
+        "cmd_help.go",
+        "cmd_login.go",
+        "cmd_query.go",
+        "commands.go",
+        "config.go",
+        "docs.go",
+        "error.go",
+        "help.go",
+        "main.go",
+        "observe.go",
+        "operate.go",
+        "output.go",
+        "request.go",
+        "testfixture.go",
+        "text.go",
+        "util.go",
+    ],
+    embedsrcs = [
+        "README.md",
+        "docs/help.md",
+        "docs/login.md",
+        "docs/query.md",
+    ],
+    importpath = "observe/cmd/observe",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_spf13_pflag//:pflag",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+        "@org_golang_x_term//:term",
+    ],
+)
+
+go_binary(
+    name = "observe",
+    embed = [":observe_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "observe_test",
+    srcs = [
+        "cmd_login_test.go",
+        "cmd_query_test.go",
+        "commands_test.go",
+        "config_test.go",
+        "observe_test.go",
+        "operate_test.go",
+        "text_test.go",
+        "util_test.go",
+    ],
+    embed = [":observe_lib"],
+    deps = ["@com_github_google_go_cmp//cmp"],
+)
