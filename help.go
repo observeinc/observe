@@ -49,7 +49,7 @@ func init() {
 }
 
 func help() {
-	os.Stderr.WriteString(helpText)
+	os.Stderr.WriteString(helpText())
 	os.Stderr.WriteString("Configuration options:\n\n")
 	pflag.PrintDefaults()
 	PrintCommands(os.Stderr)

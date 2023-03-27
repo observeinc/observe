@@ -3,17 +3,12 @@ apple_id {
   password = "@env:AC_PASSWORD"
 }
 notarize {
-  path = "observe.dmg"
+  path = "dist/observe-darwin_darwin_arm64/observe"
   bundle_id = "com.observeinc.developer.observe"
   staple = true
 }
 notarize {
-  path = "observe.zip"
-  bundle_id = "com.observeinc.developer.observe"
-  staple = true
-}
-notarize {
-  path = "observe.pkg"
+  path = "dist/observe-darwin_darwin_amd64/observe"
   bundle_id = "com.observeinc.developer.observe"
   staple = true
 }

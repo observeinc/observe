@@ -1,29 +1,48 @@
 builds:
   - binary: observe
     id: observe
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
     goarch:
       - amd64
-    ldflags:
-      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
     mod_timestamp: "{{.CommitTimestamp}}"
   - binary: observe
-    id: observe-darwin
+    id: observe-macos
+    env:
+      - CGO_ENABLED=0
     goos:
       - darwin
     goarch:
       - amd64
       - arm64
-    ldflags:
-      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
     mod_timestamp: "{{.CommitTimestamp}}"
+archives:
+  - format: zip
+    files:
+    - README.md
+    - observe_completions_bash.sh
+    wrap_in_directory: true
+    strip_parent_binary_folder: true
+    rlcp: true
+    format_overrides:
+      - goos: linux
+        format: "tar.gz"
+checksum:
+  disable: true
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
 signs:
-  - signature: "${artifact}.dmg"
+  - signature: "${artifact}"
     ids:
-      - observe-darwin
+      - observe-macos
     cmd: gon
     args:
       - s/notarize.hcl
     artifacts: all
+    output: true
+
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
