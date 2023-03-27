@@ -30,6 +30,9 @@ func (*propertyTypeInteger) FromString(s string) (any, error) {
 	if err != nil {
 		return nil, ErrIsNotInteger
 	}
+	if s[0] == '+' || s[0] == '0' {
+		return nil, ErrIsNotInteger
+	}
 	return i64, nil
 }
 

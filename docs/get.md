@@ -1,10 +1,10 @@
 # get
 
-Ask the Observe QPI for the data of a specific instance of some object.
+Ask the Observe API for the data of a specific instance of some object.
 
 You can see the kinds of objects supported by running:
 
-    observe help --objects
+    observe help objects
 
 You need to specify both the object type and the object id. For example:
 

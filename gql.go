@@ -27,9 +27,7 @@ func gqlQuery(cfg *Config, op Output, hc *http.Client, q string, args object, pa
 	if err != nil {
 		return nil, NewObserveError(err, "response JSON decode error")
 	}
-	var retObj object
-	var is bool
-	retObj, is = ret.(object)
+	retObj, is := ret.(object)
 	if !is {
 		return nil, NewObserveError(nil, "response is malformed: not an object")
 	}

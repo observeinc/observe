@@ -18,6 +18,8 @@ type Config struct {
 	Quiet         bool   `json:"quiet" yaml:"quiet"`
 	Debug         bool   `json:"debug" yaml:"debug"`
 	Workspace     string `json:"workspace" yaml:"workspace"`
+	// Don't forget to add new fields into ParseConfig(), they're not
+	// automatically read into this struct!
 }
 
 func (c Config) AuthHeader() string {
@@ -71,6 +73,9 @@ func ParseConfig(data []byte, cfg *Config, path string, profile string, required
 		}
 		if s.Debug {
 			cfg.Debug = s.Debug
+		}
+		if s.Workspace != "" {
+			cfg.Workspace = s.Workspace
 		}
 		return nil
 	}

@@ -32,6 +32,15 @@ func (*propertyTypeORN) ToString(i any) (string, error) {
 }
 
 func (*propertyTypeORN) FromString(s string) (any, error) {
+	if s == "null" {
+		return nil, nil
+	}
+	if len(s) < 2 {
+		return nil, ErrIsNotORN
+	}
+	if s[0] != '"' || s[len(s)-1] != '"' {
+		return nil, ErrIsNotORN
+	}
 	if str, err := strconv.Unquote(s); err != nil {
 		return nil, ErrIsNotORN
 	} else if !reORN.MatchString(str) {

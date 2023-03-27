@@ -7,7 +7,7 @@ software and businesses fast, and you can learn more about it at [https://observ
 
 To install this tool, if you have `go` installed, you can run:
 
-    go install https://github.com/observeinc/observe
+    go install github.com/observeinc/observe
 
 If you don't have `go` installed, you can download pre-built binaries for
 popular operating systems at [https://github.com/observeinc/observe/releases](https://github.com/observeinc/observe/releases)
@@ -27,7 +27,7 @@ with email/password available, you can run it like so:
     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     login: saved authtoken to section "default" in config file "/home/myname/.config/observe.yaml"
     
-    $ observe query -Q 'pick_col timestamp, log | limit 10' -I 'Default.kubernetes/Container Logs'
+    $ observe query -q 'pick_col timestamp, log | limit 10' -i 'Default.kubernetes/Container Logs'
     | timestamp           | log                                                       |
     -----------------------------------------------------------------------------------
     | 1679497866772157872 | E0420 16:20:00.123456 1 package/file.go:123] Hello World! |
@@ -38,8 +38,8 @@ profile that will be re-used when you run other commands. If you do not want to
 save this credential in that file, you can specify `--authtoken` on the command
 line instead, and should not use `--save` when logging in.
 
-If you use an SSO integration such as Okta, Azure AD, Google, or PingOne, then
-see the section about the `login` command for how to generate credentials.
+If you use an SSO SAML integration such as Okta, Azure AD, Google, or PingOne,
+then see the section about the `login` command for how to generate credentials.
 
 The name of the dataset input for your query may vary based on what datasets
 you have installed or built in your workspace, as well as the name of your
@@ -89,7 +89,7 @@ each command has its own `command-options`. The `config-options` may not be
 specified after the command, and the `command-options` may not be specified
 before the command.
 
-To see a list of all options and commands, use `observe --help`
+To see a list of all options and commands, use `observe help`
 
 ## Profile Files
 
@@ -145,5 +145,5 @@ out, or to a file specified with `--output=filename`. It's worth noting that
 data output redirection is a global configuration option and *not* an option to
 any specific command.
 
-Use `observe help --objects` to get help on object types.
+Use `observe help objects` to get help on object types.
 

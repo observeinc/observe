@@ -61,9 +61,10 @@ var ObjectTypeDataset ObjectType = &objectTypeDataset{}
 // guided codegen to generate these object type definitions.
 var propertyDescDatatype = []PropertyDesc{
 	{"id", PropertyTypeInteger, false, true, func(o any) any { return o.(*objectDataset).Id }, func(o any, v any) { o.(*objectDataset).Id = v.(int64) }},
-	{"name", PropertyTypeString, false, false, func(o any) any { return o.(*objectDataset).Name }, func(o any, v any) { o.(*objectDataset).Name = v.(string) }},
-	{"workspace", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).Workspace }, func(o any, v any) { o.(*objectDataset).Workspace = v.(int64) }},
 	{"path", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Path }, func(o any, v any) { o.(*objectDataset).Path = v.(string) }},
+	{"workspace", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).Workspace }, func(o any, v any) { o.(*objectDataset).Workspace = v.(int64) }},
+	{"folderId", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).FolderId }, func(o any, v any) { o.(*objectDataset).FolderId = v.(int64) }},
+	{"name", PropertyTypeString, false, false, func(o any) any { return o.(*objectDataset).Name }, func(o any, v any) { o.(*objectDataset).Name = v.(string) }},
 	{"kind", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Kind }, func(o any, v any) { o.(*objectDataset).Kind = v.(string) }},
 	{"description", PropertyTypeString, false, false, func(o any) any { return maybe(o.(*objectDataset).Description) }, func(o any, v any) {
 		var vp *string
@@ -72,6 +73,22 @@ var propertyDescDatatype = []PropertyDesc{
 			vp = &vs
 		}
 		o.(*objectDataset).Description = vp
+	}},
+	{"managedById", PropertyTypeInteger, true, false, func(o any) any { return maybe(o.(*objectDataset).ManagedById) }, func(o any, v any) {
+		var vp *int64
+		if v != nil {
+			vs := v.(int64)
+			vp = &vs
+		}
+		o.(*objectDataset).ManagedById = vp
+	}},
+	{"pathCost", PropertyTypeInteger, false, false, func(o any) any { return maybe(o.(*objectDataset).PathCost) }, func(o any, v any) {
+		var vp *int64
+		if v != nil {
+			vs := v.(int64)
+			vp = &vs
+		}
+		o.(*objectDataset).PathCost = vp
 	}},
 	{"validFromField", PropertyTypeString, true, false, func(o any) any { return maybe(o.(*objectDataset).ValidFromField) }, func(o any, v any) {
 		var vp *string
@@ -107,26 +124,12 @@ var propertyDescDatatype = []PropertyDesc{
 	}},
 	{"version", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Version }, func(o any, v any) { o.(*objectDataset).Version = v.(string) }},
 	{"updatedDate", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).UpdatedDate }, func(o any, v any) { o.(*objectDataset).UpdatedDate = v.(string) }},
-	{"pathCost", PropertyTypeInteger, false, false, func(o any) any { return maybe(o.(*objectDataset).PathCost) }, func(o any, v any) {
-		var vp *int64
-		if v != nil {
-			vs := v.(int64)
-			vp = &vs
-		}
-		o.(*objectDataset).PathCost = vp
-	}},
-	{"managedById", PropertyTypeInteger, true, false, func(o any) any { return maybe(o.(*objectDataset).ManagedById) }, func(o any, v any) {
-		var vp *int64
-		if v != nil {
-			vs := v.(int64)
-			vp = &vs
-		}
-		o.(*objectDataset).ManagedById = vp
-	}},
-	{"folderId", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).FolderId }, func(o any, v any) { o.(*objectDataset).FolderId = v.(int64) }},
 }
 
-func (*objectTypeDataset) TypeName() string                { return "dataset" }
+func (*objectTypeDataset) TypeName() string { return "dataset" }
+func (*objectTypeDataset) Help() string {
+	return "A dataset contains processed data ready to be queried."
+}
 func (*objectTypeDataset) CanList() bool                   { return true }
 func (*objectTypeDataset) CanGet() bool                    { return true }
 func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"workspace", "path"} }

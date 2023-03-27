@@ -28,11 +28,16 @@ func (*propertyTypeBoolean) ToString(i any) (string, error) {
 }
 
 func (*propertyTypeBoolean) FromString(s string) (any, error) {
-	if boo, err := strconv.ParseBool(s); err == nil {
-		return boo, nil
-	} else {
-		return nil, ErrIsNotBoolean
+	if s == "null" {
+		return nil, nil
 	}
+	if s == "true" {
+		return true, nil
+	}
+	if s == "false" {
+		return false, nil
+	}
+	return nil, ErrIsNotBoolean
 }
 
 func (*propertyTypeBoolean) FromGQL(v any) any {

@@ -43,7 +43,10 @@ var propertyDescWorkspace = []PropertyDesc{
 	{"timezone", PropertyTypeString, false, false, func(o any) any { return o.(*objectWorkspace).Timezone }, func(o any, v any) { o.(*objectWorkspace).Timezone = v.(string) }},
 }
 
-func (*objectTypeWorkspace) TypeName() string                { return "workspace" }
+func (*objectTypeWorkspace) TypeName() string { return "workspace" }
+func (*objectTypeWorkspace) Help() string {
+	return "A workspace organizes most other objects, such as datasets."
+}
 func (*objectTypeWorkspace) CanList() bool                   { return true }
 func (*objectTypeWorkspace) CanGet() bool                    { return true }
 func (*objectTypeWorkspace) GetPresentationLabels() []string { return nil }

@@ -27,9 +27,7 @@ type Command struct {
 	Docs []byte
 }
 
-const MinRequiredDocSize = 500
-
-var gCommands []*Command
+var allCommands []*Command
 
 // Typically you call RegisterCommand in an init() function in
 // your particular command implementation file.
@@ -38,7 +36,7 @@ func RegisterCommand(cmd *Command) {
 	if strings.ToLower(cmd.Name) != cmd.Name {
 		panic(fmt.Sprintf("Commands should have lower-case names! %q is not that!", cmd.Name))
 	}
-	for _, c := range gCommands {
+	for _, c := range allCommands {
 		if c.Name == cmd.Name {
 			panic(fmt.Sprintf("There cannot be two commands named %q!", cmd.Name))
 		}
@@ -53,11 +51,11 @@ func RegisterCommand(cmd *Command) {
 	}
 	cmd.Docs, _ = ReadDocFile(cmd.Name)
 	// Remember it for later lookup
-	gCommands = append(gCommands, cmd)
+	allCommands = append(allCommands, cmd)
 }
 
 func FindCommand(name string) *Command {
-	for _, c := range gCommands {
+	for _, c := range allCommands {
 		if c.Name == name {
 			return c
 		}
@@ -68,10 +66,10 @@ func FindCommand(name string) *Command {
 // You shouldn't iterate commands during module initialization
 // because not all commands may have been initialized yet.
 func IterateCommands(fn func(*Command)) {
-	sort.Slice(gCommands, func(i, j int) bool {
-		return gCommands[i].Name < gCommands[j].Name
+	sort.Slice(allCommands, func(i, j int) bool {
+		return allCommands[i].Name < allCommands[j].Name
 	})
-	for _, cmd := range gCommands {
+	for _, cmd := range allCommands {
 		fn(cmd)
 	}
 }

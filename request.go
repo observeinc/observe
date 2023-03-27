@@ -9,11 +9,9 @@ import (
 	"net/url"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 )
-
-type object = map[string]any
-type array = []any
 
 func RequestPOST[Req, Resp any](cfg *Config, op Output, hc *http.Client, path string, req Req, resp *Resp) (error, int) {
 	body, err := json.Marshal(req)
@@ -40,29 +38,31 @@ func RequestPOSTWithBodyOutput[Req any](cfg *Config, op Output, hc *http.Client,
 	if err != nil {
 		return err, -1
 	}
-	hresp, err := requestCommon(cfg, op, hc, "POST", path, bytes.NewBuffer(body), nil, headers)
+	var hresp *http.Response
+	hresp, err = requestCommon(cfg, op, hc, "POST", path, bytes.NewBuffer(body), nil, headers)
 	if err != nil {
 		op.Debug("error=%s\n", err)
 		return NewObserveError(err, "Network error"), -1
 	}
 	defer hresp.Body.Close()
 	op.Debug("status=%d\n", hresp.StatusCode)
-	for h, v := range hresp.Header {
-		op.Debug("%s=%s\n", h, strings.Join(v, "\n  "))
-	}
+	logHeaders(op, hresp.Header)
 	if hresp.StatusCode > 299 {
 		var msg map[string]any
-		buf := &bytes.Buffer{}
-		io.Copy(buf, hresp.Body)
-		op.Debug("body=%s\n", buf.String())
-		if nil == json.NewDecoder(buf).Decode(&msg) {
-			if m, ok := msg["message"]; ok {
-				return NewObserveError(nil, "%s", m), hresp.StatusCode
+		var data []byte
+		data, err = io.ReadAll(hresp.Body)
+		if err == nil {
+			op.Debug("body=%s\n", data)
+			if nil == json.Unmarshal(data, &msg) {
+				if m, ok := msg["message"]; ok {
+					return NewObserveError(nil, "%s", m), hresp.StatusCode
+				}
 			}
 		}
 		return NewObserveError(nil, "HTTP error: %d", hresp.StatusCode), hresp.StatusCode
 	}
-	written, err := io.Copy(resp, hresp.Body)
+	var written int64
+	written, err = io.Copy(resp, hresp.Body)
 	op.Debug("bytes_written=%d\n", written)
 	if err != nil {
 		return NewObserveError(err, "Error writing response"), hresp.StatusCode
@@ -100,10 +100,11 @@ func requestCommon(cfg *Config, op Output, hc *http.Client, verb string, path st
 		return nil, NewObserveError(err, "Client error")
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", fmt.Sprintf("observe/%s (%s) g=%s", strings.TrimSpace(ReleaseName), runtime.GOOS, GitCommit))
+	request.Header.Set("User-Agent", fmt.Sprintf("observe/%s (%s) g=%s", strings.TrimSpace(version), runtime.GOOS, strings.TrimSpace(GitCommit)+strings.TrimSpace(GitModified)))
 	for k, v := range headers {
 		request.Header.Set(k, v)
 	}
+	logHeaders(op, request.Header)
 	for h, v := range request.Header {
 		op.Debug("%s=%s\n", h, strings.Join(v, "\n  "))
 	}
@@ -129,4 +130,15 @@ func ClusterUrl(cfg *Config, path string) *url.URL {
 		panic(fmt.Sprintf("Somehow, a bad URL was constructed: %q: %s", str, err))
 	}
 	return ret
+}
+
+func logHeaders(op Output, headers http.Header) {
+	var keys []string
+	for k := range headers {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		op.Debug("%s=%s\n", k, strings.Join(headers[k], "\n  "))
+	}
 }

@@ -13,7 +13,7 @@ func TestCmdLoginUserPassword(t *testing.T) {
 	)
 	// this will panic if there's an error
 	RunCommandWithConfig(fix.cfg, fix.op, []string{"login", "me@example.com", "hunter123"}, fix.hc)
-	if !strings.Contains(fix.op.DebugBuf.String(), "CLI login from") {
+	if !strings.Contains(fix.op.DebugBuf.String(), "User-Agent=observe") {
 		t.Error("unexpected debug output:", fix.op.DebugBuf.String())
 	}
 	if diff := cmp.Diff(fix.op.ErrorBuf.String(), ``); diff != "" {

@@ -6,24 +6,31 @@ builds:
       - windows
     goarch:
       - amd64
-    ldflags:
-      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
     mod_timestamp: "{{.CommitTimestamp}}"
   - binary: observe
-    id: observe-darwin
+    id: observe-macos-amd64
     goos:
       - darwin
     goarch:
       - amd64
-      - arm64
-    ldflags:
-      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
     mod_timestamp: "{{.CommitTimestamp}}"
+  - binary: observe
+    id: observe-macos-arm64
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    mod_timestamp: "{{.CommitTimestamp}}"
+checksum:
+  disable: true
 signs:
-  - signature: "${artifact}.dmg"
+  - signature: "${artifact}"
     ids:
-      - observe-darwin
+      - observe-macos-amd64
+      - observe-macos-arm64
     cmd: gon
     args:
       - s/notarize.hcl
     artifacts: all
+    output: true
+
