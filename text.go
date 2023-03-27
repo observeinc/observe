@@ -10,22 +10,34 @@ import (
 // The ColumnFormatter parses input data (written to Write()) as CSC data,
 // and then when closed, formats it to output in an ASCII table format.
 type ColumnFormatter struct {
-	Output         io.Writer // where to write to on Close()
-	ColWidth       int       // maximum length of any individual column
-	ExtendedFormat bool      // print one column per line, rather than tabular
-	UnquoteStrings bool      // print strings literally, without backslash quoting
+	Output          io.Writer // where to write to on Close()
+	ColWidth        int       // maximum length of any individual column
+	ExtendedFormat  bool      // print one column per line, rather than tabular
+	LiteralStrings  bool      // print strings literally, without backslash quoting
+	OmitLineDrawing bool      // just separate with spaces
 
-	columnNames  []string
-	columnData   [][]string
+	columnNames []string
+	columnData  [][]string
+	dashStore   []byte
+}
+
+type CSVParsingColumnFormatter struct {
+	ColumnFormatter
 	curValue     []byte   // being parsed
 	curRow       []string // being parsed
 	inQuote      bool
 	inQuoteQuote bool
-	dashStore    []byte
 }
 
+var newline = []byte{'\n'}
+var plusminus = []byte{' ', '+', '-'}
+var spacepipe = []byte{' ', '|', ' '}
+var left = []byte{'|', ' '}
+var right = []byte{' ', '|', '\n'}
+var space = []byte{' '}
+
 // This implements a state machine that decodes RFC CSV files.
-func (c *ColumnFormatter) Write(buf []byte) (int, error) {
+func (c *CSVParsingColumnFormatter) Write(buf []byte) (int, error) {
 	curValue := c.curValue
 	if curValue == nil {
 		curValue = make([]byte, 0, 16384)
@@ -80,7 +92,7 @@ func (c *ColumnFormatter) Write(buf []byte) (int, error) {
 	return len(buf), nil
 }
 
-func (c *ColumnFormatter) endLine(curValue []byte, curRow []string) {
+func (c *CSVParsingColumnFormatter) endLine(curValue []byte, curRow []string) {
 	if len(curValue) > 0 || len(curRow) > 0 {
 		curRow = append(curRow, c.makeColString(curValue))
 		if c.columnNames == nil {
@@ -94,8 +106,8 @@ func (c *ColumnFormatter) endLine(curValue []byte, curRow []string) {
 // Pay attention to ColWidth and UnquoteStrings, returning a string that is
 // quoted if needed, and no wider than the limit if needed. Strings that get
 // truncated, have a Unicode Ellipsis rune appended as the last character.
-func (c *ColumnFormatter) makeColString(buf []byte) string {
-	if c.ColWidth <= 0 && c.UnquoteStrings {
+func (c *CSVParsingColumnFormatter) makeColString(buf []byte) string {
+	if c.ColWidth <= 0 && c.LiteralStrings {
 		// no toucha the data, but still, copy it, because we'll re-use it
 		return string(buf)
 	}
@@ -123,7 +135,7 @@ func (c *ColumnFormatter) makeColString(buf []byte) string {
 		}
 	}
 	var ret string
-	if needquote && !c.UnquoteStrings {
+	if needquote && !c.LiteralStrings {
 		ret = TableQuote(str.Bytes())
 	} else {
 		ret = str.String()
@@ -136,10 +148,14 @@ func (c *ColumnFormatter) makeColString(buf []byte) string {
 	return ret
 }
 
+func (c *CSVParsingColumnFormatter) Close() error {
+	c.endLine(c.curValue, c.curRow)
+	return c.ColumnFormatter.Close()
+}
+
 // Flush the parser, and then format to output
 func (c *ColumnFormatter) Close() error {
 	// if it didn't end with a newline, flush it anyway
-	c.endLine(c.curValue, c.curRow)
 	if c.columnNames == nil {
 		return nil
 	}
@@ -179,7 +195,9 @@ func (c *ColumnFormatter) Close() error {
 			fmts[i] = fmt.Sprintf("%%-%ds", j)
 		}
 		c.printRow(fmts, c.columnNames)
-		c.printDashes(colLens)
+		if !c.OmitLineDrawing {
+			c.printDashes(colLens)
+		}
 		// then, print each row
 		for _, row := range c.columnData {
 			c.printRow(fmts, row)
@@ -202,6 +220,34 @@ func maxColSize(colLens []int, row []string) []int {
 	return colLens
 }
 
+func (c *ColumnFormatter) SetColumnNames(header []string) {
+	c.columnNames = header
+}
+
+func (c *ColumnFormatter) AddRow(row []string) {
+	if c.ColWidth > 0 {
+		trunc := false
+		for _, s := range row {
+			if len(s) > c.ColWidth {
+				trunc = true
+				break
+			}
+		}
+		if trunc {
+			tmp := make([]string, len(row))
+			for i, s := range row {
+				if len(s) > c.ColWidth {
+					tmp[i] = s[:c.ColWidth-1] + "…"
+				} else {
+					tmp[i] = s
+				}
+			}
+			row = tmp
+		}
+	}
+	c.columnData = append(c.columnData, row)
+}
+
 func (c *ColumnFormatter) dashes(n int) []byte {
 	for len(c.dashStore) < n {
 		if len(c.dashStore) < 16 {
@@ -216,16 +262,12 @@ func (c *ColumnFormatter) dashes(n int) []byte {
 	return c.dashStore[:n]
 }
 
-var newline = []byte{'\n'}
-var plusminus = []byte{' ', '+', '-'}
-var spacepipe = []byte{' ', '|', ' '}
-var left = []byte{'|', ' '}
-var right = []byte{' ', '|', '\n'}
-
 func (c *ColumnFormatter) printExtended(colwf string, roww int, rownum int, row []string) {
-	fmt.Fprintf(c.Output, colwf, fmt.Sprintf("row %d", rownum))
-	c.Output.Write(plusminus)
-	c.Output.Write(c.dashes(roww))
+	if !c.OmitLineDrawing {
+		fmt.Fprintf(c.Output, colwf, fmt.Sprintf("row %d", rownum))
+		c.Output.Write(plusminus)
+		c.Output.Write(c.dashes(roww))
+	}
 	c.Output.Write(newline)
 	for i, v := range row {
 		if i < len(c.columnNames) {
@@ -233,7 +275,11 @@ func (c *ColumnFormatter) printExtended(colwf string, roww int, rownum int, row 
 		} else {
 			fmt.Fprintf(c.Output, colwf, "")
 		}
-		c.Output.Write(spacepipe)
+		if !c.OmitLineDrawing {
+			c.Output.Write(spacepipe)
+		} else {
+			c.Output.Write(space)
+		}
 		c.Output.Write([]byte(v))
 		c.Output.Write(newline)
 	}
@@ -241,14 +287,22 @@ func (c *ColumnFormatter) printExtended(colwf string, roww int, rownum int, row 
 
 func (c *ColumnFormatter) printRow(fmts []string, row []string) {
 	for i := range row {
-		if i == 0 {
-			c.Output.Write(left)
-		} else {
-			c.Output.Write(spacepipe)
+		if !c.OmitLineDrawing {
+			if i == 0 {
+				c.Output.Write(left)
+			} else {
+				c.Output.Write(spacepipe)
+			}
+		} else if i != 0 {
+			c.Output.Write(space)
 		}
 		fmt.Fprintf(c.Output, fmts[i], row[i])
 	}
-	c.Output.Write(right)
+	if !c.OmitLineDrawing {
+		c.Output.Write(right)
+	} else {
+		c.Output.Write(newline)
+	}
 }
 
 func (c *ColumnFormatter) printDashes(colLens []int) {
@@ -258,4 +312,37 @@ func (c *ColumnFormatter) printDashes(colLens []int) {
 	}
 	c.Output.Write(c.dashes(num))
 	c.Output.Write(newline)
+}
+
+func TableQuote(buf []byte) string {
+	var out bytes.Buffer
+	start := 0
+	for ix, ch := range buf {
+		var quoted []byte
+		switch ch {
+		case '\n':
+			quoted = []byte{'\\', 'n'}
+		case '\r':
+			quoted = []byte{'\\', 'r'}
+		case '\t':
+			quoted = []byte{'\\', 't'}
+		case '\\':
+			quoted = []byte{'\\', '\\'}
+		default:
+			if ch < 32 {
+				quoted = []byte(fmt.Sprintf("\\x%02x", ch))
+			}
+		}
+		if quoted != nil {
+			if start < ix {
+				out.Write([]byte(buf[start:ix]))
+			}
+			out.Write(quoted)
+			start = ix + 1
+		}
+	}
+	if start < len(buf) {
+		out.Write([]byte(buf[start:]))
+	}
+	return string(out.Bytes())
 }

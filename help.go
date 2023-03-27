@@ -4,15 +4,21 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"strings"
 
 	"github.com/spf13/pflag"
 )
 
+// remember to trim space from this when using it
 var GitCommit string = "(development version)"
 
+// remember to trim space from this when using it
+var ReleaseName string
+
 var helpText = `
-Observe command line tool; ` + GitCommit + `
+Observe command line tool
+` + strings.TrimSpace(ReleaseName) + `
+` + strings.TrimSpace(GitCommit) + `
 
 Usage:
   observe [configuration] command [arguments]
@@ -47,15 +53,15 @@ func help() {
 }
 
 func PrintCommands(out io.Writer) {
-	sort.Slice(commands, func(i, j int) bool {
-		return commands[i].Name < commands[j].Name
-	})
 	fmt.Fprintf(out, "\nCommands:\n\n")
-	for _, c := range commands {
+	IterateCommands(func(c *Command) {
+		if c.Unlisted {
+			return
+		}
 		fmt.Fprintf(out, "%s\n\n", c.Name)
 		if c.Flags != nil {
 			c.Flags.PrintDefaults()
 		}
 		fmt.Fprintf(out, "\n%s\n\n", WrapPrefix(c.Help, "    ", 74))
-	}
+	})
 }

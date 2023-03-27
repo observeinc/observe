@@ -16,16 +16,18 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var FlagProfile = pflag.StringP("profile", "p", "default", "The name of a section in the ~/.config/observe.yaml config file. Make empty to read no profile.")
-var FlagCustomerId = pflag.StringP("customerid", "c", "", "The numeric ID of your Observe tenant.")
-var FlagClusterStr = pflag.StringP("cluster", "u", "", "The domain of your Observe tenant cluster. Can include :port if needed.")
-var FlagAuthtokenStr = pflag.StringP("authtoken", "a", "", "The bearer token for Observe authorization. May be two-part with a space separator. Does not include 'Bearer' word.")
-var FlagOutput = pflag.StringP("output", "o", "", "The output file name for data output. If empty or '-', output goes to stdout.")
-var FlagQuiet = pflag.BoolP("quiet", "q", false, "Don't output info logs.")
-var FlagDebug = pflag.BoolP("debug", "d", false, "Output extra debug logs.")
-var FlagLog = pflag.BoolP("log", "l", false, "Timestamp output to make better log files.")
-var FlagHelp = pflag.BoolP("help", "?", false, "Print help.")
+var FlagProfile = pflag.StringP("profile", "P", "default", "The name of a section in the ~/.config/observe.yaml config file. Make empty to read no profile. Can also be specified in environment OBSERVE_PROFILE")
+var FlagCustomerId = pflag.StringP("customerid", "C", "", "The numeric ID of your Observe tenant.")
+var FlagClusterStr = pflag.StringP("cluster", "U", "", "The domain of your Observe tenant cluster. Can include :port if needed.")
+var FlagAuthtokenStr = pflag.StringP("authtoken", "A", "", "The bearer token for Observe authorization. May be two-part with a space separator. Does not include 'Bearer' word.")
+var FlagOutput = pflag.StringP("output", "O", "", "The output file name for data output. If empty or '-', output goes to stdout.")
+var FlagQuiet = pflag.BoolP("quiet", "Q", false, "Don't output info logs.")
+var FlagDebug = pflag.BoolP("debug", "D", false, "Output extra debug logs.")
+var FlagLog = pflag.BoolP("timestamp", "T", false, "Timestamp output to make better log files.")
+var FlagHelp = pflag.BoolP("help", "h", false, "Print help.")
 var FlagShowConfig = pflag.BoolP("show-config", "", false, "Print configuration before running command.")
+var FlagConfigFile = pflag.String("config", "", "Read configuration from given file rather than ~/config/observe.yaml. Can also be specified in environment OBSERVE_CONFIG.")
+var FlagWorkspace = pflag.String("workspace", "", "Default workspace to assume for objects if none is specified.")
 
 var flagsParsed = false
 
@@ -37,8 +39,9 @@ func ParseFlags() {
 	if !flagsParsed {
 		// Sanity check global flags
 		pflag.VisitAll(func(f *pflag.Flag) {
-			if f.Shorthand != "" && strings.ToLower(f.Shorthand) != f.Shorthand {
-				panic(fmt.Sprintf("Global flag %q shorthand %q must be lowercase!", f.Name, f.Shorthand))
+			// help is extra special
+			if f.Shorthand != "" && f.Shorthand != "h" && strings.ToUpper(f.Shorthand) != f.Shorthand {
+				panic(fmt.Sprintf("Global flag %q shorthand %q must be uppercase!", f.Name, f.Shorthand))
 			}
 		})
 		IterateCommands(func(cmd *Command) {
@@ -54,11 +57,16 @@ func ParseFlags() {
 		pflag.Lookup("help").NoOptDefVal = "true"
 		pflag.Lookup("quiet").NoOptDefVal = "true"
 		pflag.Lookup("debug").NoOptDefVal = "true"
+		pflag.Lookup("timestamp").NoOptDefVal = "true"
 		pflag.SetInterspersed(false)
 		pflag.Parse()
 		envProfile := os.Getenv("OBSERVE_PROFILE")
 		if !pflag.Lookup("profile").Changed && envProfile != "" {
 			*FlagProfile = envProfile
+		}
+		configFile := os.Getenv("OBSERVE_CONFIG")
+		if !pflag.Lookup("config").Changed && configFile != "" {
+			*FlagConfigFile = configFile
 		}
 	}
 }
@@ -83,6 +91,9 @@ func InitConfigFromFileAndFlags(cfg *Config, op *DefaultOutput) {
 	}
 	if pflag.Lookup("debug").Changed || *FlagDebug {
 		cfg.Debug = *FlagDebug
+	}
+	if pflag.Lookup("workspace").Changed || *FlagWorkspace != "" {
+		cfg.Workspace = *FlagWorkspace
 	}
 	*op = DefaultOutput{EnableDebug: cfg.Debug, DisableInfo: cfg.Quiet, DataOutput: os.Stdout}
 }

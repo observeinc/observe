@@ -17,6 +17,7 @@ type Config struct {
 	AuthtokenStr  string `json:"authtoken" yaml:"authtoken"`
 	Quiet         bool   `json:"quiet" yaml:"quiet"`
 	Debug         bool   `json:"debug" yaml:"debug"`
+	Workspace     string `json:"workspace" yaml:"workspace"`
 }
 
 func (c Config) AuthHeader() string {

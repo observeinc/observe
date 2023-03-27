@@ -35,7 +35,7 @@ func TestCmdLoginDelegated(t *testing.T) {
 	)
 	// this will panic if there's an error
 	RunCommandWithConfig(fix.cfg, fix.op, []string{"login", "me@example.com", "--sso"}, fix.hc)
-	flagSSO = false // reset options after running
+	flagLoginSSO = false // reset options after running
 	fix.Assert()
 	if !strings.Contains(fix.op.DebugBuf.String(), "/v1/login/delegated") {
 		t.Error("unexpected debug output:", fix.op.DebugBuf.String())
