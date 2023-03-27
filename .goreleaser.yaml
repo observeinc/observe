@@ -1,0 +1,53 @@
+builds:
+  - binary: observe
+    id: observe
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+    mod_timestamp: "{{.CommitTimestamp}}"
+  - binary: observe
+    id: observe-macos
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{.CommitTimestamp}}"
+    hooks:
+      post: codesign --sign A69028128959F0439E6330344FCAD22D6CF8F59F --prefix com.observeinc.developer. --options runtime --timestamp "{{.Path}}"
+archives:
+  - format: zip
+    files:
+    - README.md
+    - observe_completions_bash.sh
+    wrap_in_directory: true
+    strip_parent_binary_folder: true
+    rlcp: true
+    format_overrides:
+      - goos: linux
+        format: "tar.gz"
+signs:
+  - id: observe-macos-sig
+    signature: "${artifact}.sig"
+    ids:
+      - observe-macos
+    cmd: sh
+    args:
+      - "-c"
+      - "s/apple-sign.sh"
+      - "${artifact}"
+    artifacts: archive
+    output: true
+checksum:
+  disable: true
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
