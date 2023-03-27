@@ -12,6 +12,7 @@ import (
 func TestFlagsConfig(t *testing.T) {
 	ParseFlags()
 	*FlagProfile = ""
+	*FlagConfigFile = ""
 	*FlagCustomerId = "101"
 	*FlagClusterStr = "observe-sandbox.com:4444"
 	*FlagAuthtokenStr = "some-authtoken-i-guess"

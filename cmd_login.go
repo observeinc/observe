@@ -10,19 +10,19 @@ import (
 )
 
 var (
-	flagSSO          bool
-	flagReadPassword bool
-	flagSaveConfig   bool
-	flagsLogin       *pflag.FlagSet
+	flagsLogin            *pflag.FlagSet
+	flagLoginSSO          bool
+	flagLoginReadPassword bool
+	flagLoginSaveConfig   bool
 )
 
 func init() {
 	flagsLogin = pflag.NewFlagSet("login", pflag.ContinueOnError)
-	flagsLogin.BoolVarP(&flagSSO, "sso", "O", false, "Use SSO to log in")
+	flagsLogin.BoolVarP(&flagLoginSSO, "sso", "o", false, "Use SSO to log in")
 	flagsLogin.Lookup("sso").NoOptDefVal = "true"
-	flagsLogin.BoolVarP(&flagReadPassword, "read-password", "R", false, "Read password from stdin (avoid putting it on command line).")
+	flagsLogin.BoolVarP(&flagLoginReadPassword, "read-password", "r", false, "Read password from stdin (avoid putting it on command line).")
 	flagsLogin.Lookup("read-password").NoOptDefVal = "true"
-	flagsLogin.BoolVarP(&flagSaveConfig, "save", "S", false, "Save the authtoken in the config file.")
+	flagsLogin.BoolVarP(&flagLoginSaveConfig, "save", "s", false, "Save the authtoken in the config file.")
 	RegisterCommand(&Command{
 		Name:            "login",
 		Help:            "Generate an authtoken. Either provide email address and password on command line (not recommended,) or the --sso option to get a URL you can open in a browser to finish logging in.",
@@ -84,18 +84,18 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if cfg.ClusterStr == "" {
 		return ErrLoginRequiresCluster
 	}
-	if flagSSO && flagReadPassword {
+	if flagLoginSSO && flagLoginReadPassword {
 		return ErrLoginClashingOptions
 	}
-	if flagSaveConfig && *FlagProfile == "" {
+	if flagLoginSaveConfig && *FlagProfile == "" {
 		return ErrLoginSaveRequiresProfile
 	}
-	if flagSSO {
+	if flagLoginSSO {
 		if len(args) != 2 {
 			return ErrLoginEmailRequired
 		}
 		return cmdLoginDelegated(cfg, op, hc, args[1])
-	} else if flagReadPassword {
+	} else if flagLoginReadPassword {
 		if len(args) != 2 {
 			return ErrLoginEmailRequired
 		}
@@ -139,7 +139,7 @@ func cmdLoginEmailPassword(cfg *Config, op Output, hc *http.Client, email, passw
 		}
 		return NewObserveError(nil, "status %d", status)
 	}
-	return cmdLoginSuccess(cfg, op, resp.AccessKey, flagSaveConfig, GetConfigFilePath(), *FlagProfile)
+	return cmdLoginSuccess(cfg, op, resp.AccessKey, flagLoginSaveConfig, GetConfigFilePath(), *FlagProfile)
 }
 
 func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) error {
@@ -174,7 +174,7 @@ func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) er
 		} else if resp2.AccessKey != "" {
 			op.Debug("determined that request %s was accepted\n", resp1.ServerToken)
 			// success!
-			return cmdLoginSuccess(cfg, op, resp2.AccessKey, flagSaveConfig, GetConfigFilePath(), *FlagProfile)
+			return cmdLoginSuccess(cfg, op, resp2.AccessKey, flagLoginSaveConfig, GetConfigFilePath(), *FlagProfile)
 		} else {
 			// failure!
 			op.Debug("determined that request %s was denied\n", resp1.ServerToken)

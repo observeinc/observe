@@ -12,13 +12,13 @@ func TestCmdQueryEmpty(t *testing.T) {
 		RunCommandWithConfig(fix.cfg, fix.op, []string{"query"}, fix.hc)
 	})
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-I", "40000062"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-i", "40000062"}, fix.hc)
 	})
-	flagInput = nil // reset flags after parse
+	flagQueryInputs = nil // reset flags after parse
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-Q", "filter true"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-q", "filter true"}, fix.hc)
 	})
-	flagText = "" // reset flags after parse
+	flagQueryText = "" // reset flags after parse
 	fix.Assert()
 }
 
@@ -26,9 +26,9 @@ func TestCmdQueryText(t *testing.T) {
 	fix := startFixture(t,
 		testRequest{"/v1/meta/export/query", 200, "timestamp,log\n2023-04-20T16:20:00Z,\"this, is a message!\"\n"},
 	)
-	RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-I", "40000062", "-Q", ""}, fix.hc)
-	flagInput = nil // reset flags after parse
-	flagText = ""   // reset flags after parse
+	RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-i", "40000062", "-q", ""}, fix.hc)
+	flagQueryInputs = nil // reset flags after parse
+	flagQueryText = ""    // reset flags after parse
 	fix.Assert()
 	if diff := cmp.Diff("\n"+fix.op.OutputBuf.String(), `
 | timestamp            | log                 |

@@ -1,0 +1,30 @@
+builds:
+  - binary: observe
+    id: observe
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+    ldflags:
+      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
+    mod_timestamp: "{{.CommitTimestamp}}"
+  - binary: observe
+    id: observe-darwin
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -X main.GitCommit="{{.Commit}}" -X main.ReleaseName="{{.Version}}"
+    mod_timestamp: "{{.CommitTimestamp}}"
+signs:
+  - signature: "${artifact}"
+    ids:
+      - observe-darwin
+    cmd: gon
+    args:
+      - s/notarize.hcl
+    artifacts: all
+    output: true

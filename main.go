@@ -9,6 +9,11 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// TODO: add more object types:
+// - lsetting
+// - rbacgroup, rbacmember, rbacstatement
+// - user
+// others?
 func main() {
 	ParseFlags()
 	if *FlagHelp {

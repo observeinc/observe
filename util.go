@@ -1,18 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
 )
+
+var ErrUnrecognizedTime error = ObserveError{Msg: "the time format is not recognized"}
+var ErrInvalidDuration error = ObserveError{Msg: "the duration value is not recognized"}
+var ErrSnapMustBePositive error = ObserveError{Msg: "the snap duration must be greater than 0"}
 
 func WrapPrefix(str string, leading string, width int) string {
 	var ret string
@@ -46,7 +51,12 @@ func WrapPrefix(str string, leading string, width int) string {
 	return ret
 }
 
+// Boo hiss reads the value directly -- fixup this by making it part of Config
+// and passing Config everywhere it's needed.
 func GetConfigFilePath() string {
+	if *FlagConfigFile != "" {
+		return *FlagConfigFile
+	}
 	return path.Join(os.Getenv("HOME"), ".config/observe.yaml")
 }
 
@@ -96,11 +106,63 @@ func LoadQueryTextFromFile(filepath string) (string, error) {
 	return string(buf), err
 }
 
+var timePiecesRegexAlt = regexp.MustCompile(`^(now)? *([+-][0-9]*[smhd])? *(@[0-9]*[smhd])?$`)
+var timePiecesRegex = regexp.MustCompile(`^([^-+@][^@]*)?(@[0-9]*[smhd])? *([+-][0-9]*[smhd])?$`)
+
 // The given input strings should be a date-time in YYYY-MM-DD HH:MM:SS format,
 // or some variation thereof. Also, epoch values of seconds, milliseconds,
 // nanoseconds are allowed, as long as they are sufficiently positive to be
 // disabiguated.
-func ParseTime(tm string) (time.Time, error) {
+func ParseTime(tm string, now time.Time) (time.Time, error) {
+
+	tm = strings.TrimSpace(tm)
+	if tm == "" {
+		return now, nil
+	}
+
+	pieces := timePiecesRegexAlt.FindStringSubmatch(tm)
+	if len(pieces) == 4 && pieces[0] != "" {
+		//	the 'now-3h@1h' form flips the delta and snap
+		pieces[2], pieces[3] = pieces[3], pieces[2]
+	} else {
+		pieces = timePiecesRegex.FindStringSubmatch(tm)
+		if len(pieces) != 4 || pieces[0] == "" {
+			return time.Time{}, ErrUnrecognizedTime
+		}
+	}
+	// time
+	abstime := now
+	var err error
+	if pieces[1] != "" {
+		abstime, err = ReadAbsoluteTime(pieces[1], now)
+		if err != nil {
+			return time.Time{}, err
+		}
+	}
+	// snap
+	if len(pieces[2]) > 0 {
+		delta, err := ReadDuration(pieces[2][1:])
+		if err != nil {
+			return time.Time{}, NewObserveError(err, "time snap")
+		}
+		if delta <= 0 {
+			return time.Time{}, ErrSnapMustBePositive
+		}
+		abstime = abstime.Truncate(delta)
+	}
+	// delta
+	if len(pieces[3]) > 0 {
+		delta, err := ReadDuration(pieces[3])
+		if err != nil {
+			return time.Time{}, NewObserveError(err, "time offset")
+		}
+		abstime = abstime.Add(delta)
+	}
+
+	return abstime, nil
+}
+
+func ReadAbsoluteTime(tm string, rel time.Time) (time.Time, error) {
 	// If I have an epoch time, from UNIX, from JavaScript, or from OPAL, I can
 	// punch it in here as a number.
 	if i64, err := strconv.ParseInt(tm, 10, 64); err == nil {
@@ -118,6 +180,9 @@ func ParseTime(tm string) (time.Time, error) {
 	for _, timeformat := range []string{
 		time.RFC3339Nano,
 		time.RFC3339,
+		"2006-01-02 15:04:05.999999999 -07:00",
+		"2006-01-02 15:04:05.999 -07:00",
+		"2006-01-02 15:04:05 -0700",
 		"2006-01-02 15:04:05.999999999",
 		"2006-01-02 15:04:05.999",
 		"2006-01-02 15:04:05",
@@ -127,40 +192,62 @@ func ParseTime(tm string) (time.Time, error) {
 		}
 	}
 	if tm == "now" {
-		return time.Now(), nil
+		return rel, nil
 	}
-	return time.Time{}, NewObserveError(nil, "input should be a date/time in YYYY-MM-DD HH:MM:SS format")
+	return time.Time{}, ErrUnrecognizedTime
 }
 
-func TableQuote(buf []byte) string {
-	var out bytes.Buffer
-	start := 0
-	for ix, ch := range buf {
-		var quoted []byte
-		switch ch {
-		case '\n':
-			quoted = []byte{'\\', 'n'}
-		case '\r':
-			quoted = []byte{'\\', 'r'}
-		case '\t':
-			quoted = []byte{'\\', 't'}
-		case '\\':
-			quoted = []byte{'\\', '\\'}
-		default:
-			if ch < 32 {
-				quoted = []byte(fmt.Sprintf("\\x%02x", ch))
-			}
-		}
-		if quoted != nil {
-			if start < ix {
-				out.Write([]byte(buf[start:ix]))
-			}
-			out.Write(quoted)
-			start = ix + 1
+func ReadDuration(tm string) (time.Duration, error) {
+	if tm == "" {
+		return 0, ErrInvalidDuration
+	}
+	tmlen := len(tm)
+	unit := tm[tmlen-1]
+	tm = tm[:tmlen-1]
+	var i64 int64
+	var err error
+	switch tm {
+	case "-":
+		i64 = -1
+	case "+", "":
+		i64 = 1
+	default:
+		i64, err = strconv.ParseInt(tm, 10, 64)
+		if err != nil {
+			return 0, ErrInvalidDuration
 		}
 	}
-	if start < len(buf) {
-		out.Write([]byte(buf[start:]))
+	switch unit {
+	case 's':
+		return time.Duration(i64) * time.Second, nil
+	case 'm':
+		return time.Duration(i64) * time.Minute, nil
+	case 'h':
+		return time.Duration(i64) * time.Hour, nil
+	case 'd':
+		return time.Duration(i64) * 24 * time.Hour, nil
 	}
-	return string(out.Bytes())
+	return 0, ErrInvalidDuration
+}
+
+func lcfirst(s string) string {
+	// lowercase the first character of the string
+	if len(s) > 0 {
+		return strings.ToLower(string(s[0])) + s[1:]
+	}
+	return s
+}
+
+func maybe[T any](t *T) any {
+	if t == nil {
+		return nil
+	}
+	return *t
+}
+
+func must[T any](t T, e error) T {
+	if e != nil {
+		panic(fmt.Errorf("unexpected error: %w", e))
+	}
+	return t
 }

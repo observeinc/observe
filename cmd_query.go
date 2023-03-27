@@ -11,40 +11,43 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var flagText string
-var flagFile string
-var flagInput []string
-var flagJSON bool
-var flagCSV bool
-var flagValidFrom string
-var flagValidTo string
-var flagDuration time.Duration
-var flagColWidth int
-var flagExtendedFormat bool
-var flagUnquoteStrings bool
-
-var flagsQuery *pflag.FlagSet
+var (
+	flagsQuery              *pflag.FlagSet
+	flagQueryText           string
+	flagQueryFile           string
+	flagQueryInputs         []string
+	flagQueryJSON           bool
+	flagQueryCSV            bool
+	flagQueryStartTime      string
+	flagQueryEndTime        string
+	flagQueryRelative       time.Duration
+	flagQueryColWidth       int
+	flagQueryExtended       bool
+	flagQueryLiteralStrings bool
+	flagQueryFormat         string
+)
 
 func init() {
 	flagsQuery = pflag.NewFlagSet("query", pflag.ContinueOnError)
-	flagsQuery.StringVarP(&flagText, "query", "Q", "", "OPAL query text")
-	flagsQuery.StringVarP(&flagFile, "file", "F", "", "file containing OPAL query text")
-	flagsQuery.StringSliceVarP(&flagInput, "input", "I", nil, "input datasets: ID or workspace:name")
-	flagsQuery.BoolVarP(&flagJSON, "json", "J", false, "output in nd-JSON format")
+	flagsQuery.StringVarP(&flagQueryText, "query", "q", "", "OPAL query text")
+	flagsQuery.StringVarP(&flagQueryFile, "file", "f", "", "file containing OPAL query text")
+	flagsQuery.StringSliceVarP(&flagQueryInputs, "input", "i", nil, "input datasets: ID or workspace:name")
+	flagsQuery.BoolVarP(&flagQueryJSON, "json", "j", false, "output in nd-JSON format")
 	flagsQuery.Lookup("json").NoOptDefVal = "true"
-	flagsQuery.BoolVarP(&flagCSV, "csv", "C", false, "output in CSV format")
+	flagsQuery.BoolVarP(&flagQueryCSV, "csv", "c", false, "output in CSV format")
 	flagsQuery.Lookup("csv").NoOptDefVal = "true"
-	flagsQuery.StringVarP(&flagValidFrom, "valid-from", "B", "", "beginnig time of query window")
-	flagsQuery.StringVarP(&flagValidTo, "valid-to", "E", "", "end time of query window")
-	flagsQuery.DurationVarP(&flagDuration, "duration", "D", 0, "duration of query window")
-	flagsQuery.IntVarP(&flagColWidth, "col-width", "W", 64, "maximum column width for table format; 0 for unlimited")
-	flagsQuery.BoolVarP(&flagExtendedFormat, "extended-format", "X", false, "print one column value per row rather than table format")
-	flagsQuery.Lookup("extended-format").NoOptDefVal = "true"
-	flagsQuery.BoolVarP(&flagUnquoteStrings, "unquote-strings", "U", false, "print embedded control characters literally")
-	flagsQuery.Lookup("unquote-strings").NoOptDefVal = "true"
+	flagsQuery.StringVarP(&flagQueryStartTime, "start-time", "s", "", "start time of query window")
+	flagsQuery.StringVarP(&flagQueryEndTime, "end-time", "e", "", "end time of query window")
+	flagsQuery.DurationVarP(&flagQueryRelative, "relative", "r", 0, "duration of query window, anchored at either end")
+	flagsQuery.IntVarP(&flagQueryColWidth, "col-width", "w", 64, "maximum column width for table format; 0 for unlimited")
+	flagsQuery.BoolVarP(&flagQueryExtended, "extended", "x", false, "print one column value per row rather than table format")
+	flagsQuery.Lookup("extended").NoOptDefVal = "true"
+	flagsQuery.BoolVarP(&flagQueryLiteralStrings, "literal-strings", "l", false, "print embedded control characters literally")
+	flagsQuery.Lookup("literal-strings").NoOptDefVal = "true"
+	flagsQuery.StringVar(&flagQueryFormat, "format", "", "specify output format: table, extended, csv, ndjson")
 	RegisterCommand(&Command{
 		Name:  "query",
-		Help:  "Run an OPAL query. Provide the query either on command line, or in file. Provide the query time window using some combination of start time, end time, and duration, with defaults being 1 hour, leading up to 'now'. Local times are read from the local machine clock.",
+		Help:  "Run an OPAL query. Provide the query either on command line, or in file. Provide the query time window using some combination of start time, end time, and duration, with defaults being 1 hour, leading up to 'now'. Use 'observe help query' for more information on specifying time.",
 		Flags: flagsQuery,
 		Func:  cmdQuery,
 	})
@@ -55,14 +58,17 @@ const MaxQueryTextLength = 100000
 
 var ErrNeedQueryOrFile = ObserveError{Msg: "need one of --query and --file for the query text"}
 var ErrOnlyOneQueryOrFile = ObserveError{Msg: "only one of --query and --file may be specified"}
-var ErrAtMostTwoTimeSpecifiers = ObserveError{Msg: "at most two of --valid-from, --valid-to, and --duration may be specified"}
-var ErrValidToMustBeAfterValidFrom = ObserveError{Msg: "--valid-to time must be after --vaild-from time"}
+var ErrAtMostTwoTimeSpecifiers = ObserveError{Msg: "at most two of --start-time, --end-time, and --relative may be specified"}
+var ErrValidToMustBeAfterValidFrom = ObserveError{Msg: "--end-time time must be after --vaild-from time"}
 var ErrTooLongQueryText = ObserveError{Msg: fmt.Sprintf("the query text is longer than %d characters", MaxQueryTextLength)}
 var ErrAtMostOneOutputFormat = ObserveError{Msg: "at most one of --csv and --json may be specified"}
 var ErrAnInputIsRequired = ObserveError{Msg: "at least one --input is required"}
+var ErrQueryTooManyFormats = ObserveError{Msg: "at most one of --format and the format-specific flags may be specified"}
+var ErrUnknownFormat = ObserveError{Msg: "the --format is not known"}
 
 func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 
+	nowTime := time.Now().Truncate(time.Second)
 	// parse query arguments
 
 	nText := CountFlags(flagsQuery, "query", "file")
@@ -76,9 +82,9 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	case 1:
 		// I have to grudgingly accept this
 		if flagsQuery.Lookup("file").Changed {
-			queryText, err = LoadQueryTextFromFile(flagFile)
+			queryText, err = LoadQueryTextFromFile(flagQueryFile)
 		} else {
-			queryText = flagText
+			queryText = flagQueryText
 		}
 	}
 	if err != nil {
@@ -89,33 +95,33 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	}
 
 	var fromTime, toTime time.Time
-	nTime := CountFlags(flagsQuery, "valid-from", "valid-to", "duration")
+	nTime := CountFlags(flagsQuery, "start-time", "end-time", "relative")
 	switch nTime {
 	case 0:
-		toTime = time.Now().Add(-15 * time.Second).Truncate(time.Minute)
+		toTime = nowTime.Add(-15 * time.Second).Truncate(time.Minute)
 		fromTime = toTime.Add(-DefaultQueryWindowDuration)
 	case 1:
-		if flagsQuery.Lookup("valid-from").Changed {
-			fromTime, err = ParseTime(flagValidFrom)
+		if flagsQuery.Lookup("start-time").Changed {
+			fromTime, err = ParseTime(flagQueryStartTime, nowTime)
 			toTime = fromTime.Add(DefaultQueryWindowDuration)
-		} else if flagsQuery.Lookup("valid-to").Changed {
-			toTime, err = ParseTime(flagValidTo)
+		} else if flagsQuery.Lookup("end-time").Changed {
+			toTime, err = ParseTime(flagQueryEndTime, nowTime)
 			fromTime = toTime.Add(-DefaultQueryWindowDuration)
 		} else {
-			toTime = time.Now().Add(-15 * time.Second).Truncate(time.Minute)
-			fromTime = toTime.Add(-flagDuration)
+			toTime = nowTime.Add(-15 * time.Second).Truncate(time.Minute)
+			fromTime = toTime.Add(-flagQueryRelative)
 		}
 	case 2:
-		if !flagsQuery.Lookup("valid-from").Changed {
-			toTime, err = ParseTime(flagValidTo)
-			fromTime = toTime.Add(-flagDuration)
-		} else if !flagsQuery.Lookup("valid-to").Changed {
-			fromTime, err = ParseTime(flagValidFrom)
-			toTime = fromTime.Add(flagDuration)
+		if !flagsQuery.Lookup("start-time").Changed {
+			toTime, err = ParseTime(flagQueryEndTime, nowTime)
+			fromTime = toTime.Add(-flagQueryRelative)
+		} else if !flagsQuery.Lookup("end-time").Changed {
+			fromTime, err = ParseTime(flagQueryStartTime, nowTime)
+			toTime = fromTime.Add(flagQueryRelative)
 		} else {
-			fromTime, err = ParseTime(flagValidFrom)
+			fromTime, err = ParseTime(flagQueryStartTime, nowTime)
 			if err == nil {
-				toTime, err = ParseTime(flagValidTo)
+				toTime, err = ParseTime(flagQueryEndTime, nowTime)
 			}
 		}
 	default:
@@ -139,11 +145,11 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	}
 
 	// TODO: we can remove this when in-text inputs are complete
-	if len(flagInput) == 0 {
+	if len(flagQueryInputs) == 0 {
 		return ErrAnInputIsRequired
 	}
 	var inputs []StageQueryInput
-	for i, in := range flagInput {
+	for i, in := range flagQueryInputs {
 		pieces := strings.SplitN(in, "=", 2)
 		if len(pieces) == 1 {
 			if i == 0 {
@@ -165,6 +171,11 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 			})
 			op.Debug("input[%d] @%s <- datasetId(%d)\n", i, pieces[0], i64)
 		} else {
+			if strings.Index(pieces[1], ".") == -1 {
+				if cfg.Workspace != "" {
+					pieces[1] = cfg.Workspace + "." + pieces[1]
+				}
+			}
 			inputs = append(inputs, StageQueryInput{
 				InputName:   pieces[0],
 				DatasetPath: &pieces[1],
@@ -187,20 +198,51 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 		},
 	}
 
+	nfmts := 0
+	if flagQueryFormat != "" {
+		op.Debug("formatFlag=%s\n", flagQueryFormat)
+		nfmts++
+	}
+	if flagQueryJSON {
+		op.Debug("format=JSON\n")
+		nfmts++
+	}
+	if flagQueryCSV {
+		op.Debug("format=CSV\n")
+		nfmts++
+	}
+	if flagQueryExtended {
+		op.Debug("format=Extended\n")
+		nfmts++
+	}
+	if nfmts > 1 {
+		op.Debug("too many formats: %d\n", nfmts)
+		return ErrQueryTooManyFormats
+	}
+	// I know that if flagQueryFormat is non-empty, none of the format flags are specified
+	switch flagQueryFormat {
+	case "json", "JSON", "ndjson", "NDJSON", "nd-json", "ND-JSON":
+		flagQueryJSON = true
+	case "csv", "CSV":
+		flagQueryCSV = true
+	case "extended":
+		flagQueryExtended = true
+	case "":
+		// don't change what's configured
+	default:
+		return ErrUnknownFormat
+	}
 	var output io.Writer
 	acceptHeader := "text/csv"
 	switch {
-	case flagJSON:
-		op.Debug("format=JSON\n")
+	case flagQueryJSON:
 		output = op
 		acceptHeader = "application/x-ndjson"
-	case flagCSV:
-		op.Debug("format=CSV\n")
+	case flagQueryCSV:
 		output = op
 	default:
-		op.Debug("format=table\n")
 		// text format
-		tfmt := &ColumnFormatter{Output: op, ColWidth: flagColWidth, ExtendedFormat: flagExtendedFormat, UnquoteStrings: flagUnquoteStrings}
+		tfmt := &CSVParsingColumnFormatter{ColumnFormatter: ColumnFormatter{Output: op, ColWidth: flagQueryColWidth, ExtendedFormat: flagQueryExtended, LiteralStrings: flagQueryLiteralStrings}}
 		defer tfmt.Close()
 		output = tfmt
 	}

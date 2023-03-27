@@ -8,9 +8,11 @@ import (
 )
 
 func TestMakeColString(t *testing.T) {
-	cf := ColumnFormatter{
-		ColWidth:       4,
-		UnquoteStrings: false,
+	cf := CSVParsingColumnFormatter{
+		ColumnFormatter: ColumnFormatter{
+			ColWidth:       4,
+			LiteralStrings: false,
+		},
 	}
 	for i, tc := range []struct {
 		input  []byte
@@ -36,7 +38,11 @@ three,two,one
 `)
 
 func TestColumnFormatter1(t *testing.T) {
-	cf := ColumnFormatter{Output: &bytes.Buffer{}}
+	cf := CSVParsingColumnFormatter{
+		ColumnFormatter: ColumnFormatter{
+			Output: &bytes.Buffer{},
+		},
+	}
 	cf.Write(csvData)
 	cf.Close()
 	str := cf.Output.(*bytes.Buffer).String()
@@ -59,7 +65,7 @@ quotes involved"
 `)
 
 func TestColumnFormatter2(t *testing.T) {
-	cf := ColumnFormatter{Output: &bytes.Buffer{}}
+	cf := CSVParsingColumnFormatter{ColumnFormatter: ColumnFormatter{Output: &bytes.Buffer{}}}
 	cf.Write(csvData2)
 	cf.Close()
 	str := cf.Output.(*bytes.Buffer).String()
