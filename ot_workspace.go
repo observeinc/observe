@@ -43,7 +43,10 @@ var propertyDescWorkspace = []PropertyDesc{
 	{"timezone", PropertyTypeString, false, false, func(o any) any { return o.(*objectWorkspace).Timezone }, func(o any, v any) { o.(*objectWorkspace).Timezone = v.(string) }},
 }
 
-func (*objectTypeWorkspace) TypeName() string                { return "workspace" }
+func (*objectTypeWorkspace) TypeName() string { return "workspace" }
+func (*objectTypeWorkspace) Help() string {
+	return "A workspace organizes most other objects, such as datasets."
+}
 func (*objectTypeWorkspace) CanList() bool                   { return true }
 func (*objectTypeWorkspace) CanGet() bool                    { return true }
 func (*objectTypeWorkspace) GetPresentationLabels() []string { return nil }
@@ -51,11 +54,8 @@ func (*objectTypeWorkspace) GetProperties() []PropertyDesc   { return propertyDe
 
 func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {
 	obj, err := gqlQuery(cfg, op, hc, `query Workspace_List { currentUser { workspaces { id name:label } } }`, object{}, "data", "currentUser", "workspaces")
-	if err != nil {
+	if err != nil || obj == nil {
 		return nil, err
-	}
-	if obj == nil {
-		return nil, nil
 	}
 	cu := obj.(array)
 	var ret []*ObjectInfo

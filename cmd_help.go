@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/spf13/pflag"
@@ -18,7 +17,7 @@ func init() {
 	flagsHelp.Lookup("objects").NoOptDefVal = "true"
 	RegisterCommand(&Command{
 		Name:            "help",
-		Help:            "Prints more verbose help about particular commands, or the main program.",
+		Help:            "Prints documentation about particular commands, or the main program.",
 		Func:            cmdHelp,
 		Flags:           flagsHelp,
 		Unauthenticated: true,
@@ -27,22 +26,18 @@ func init() {
 
 func cmdHelp(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if flagHelpObjects {
-		for _, ot := range GetObjectTypes() {
-			writeObjectTypeDocs(op, ot)
-		}
-		fmt.Fprintf(op, "\n")
-		return nil
 	}
 	if len(args) == 1 {
-		readme, err := ReadDocFile("README")
-		if err != nil {
-			return NewObserveError(err, "missing documentation")
-		}
-		op.Write(readme)
-		return nil
+		help()
 	}
 	if len(args) != 2 {
-		return NewObserveError(nil, "usage: help [command]")
+		return NewObserveError(nil, "usage: observe help [command]")
+	}
+	if args[1] == "observe" {
+		return helpFile(op, "README")
+	}
+	if args[1] == "objects" {
+		return helpObjects(op)
 	}
 	cmd := FindCommand(args[1])
 	if cmd == nil {

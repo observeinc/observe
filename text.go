@@ -182,9 +182,8 @@ func (c *ColumnFormatter) Close() error {
 				roww = w
 			}
 		}
-		colwf := fmt.Sprintf("%%-%ds", colw)
 		for i, row := range c.columnData {
-			c.printExtended(colwf, roww, i, row)
+			c.printExtended(colw, roww, i, row)
 		}
 	} else {
 		for _, row := range c.columnData {
@@ -262,18 +261,18 @@ func (c *ColumnFormatter) dashes(n int) []byte {
 	return c.dashStore[:n]
 }
 
-func (c *ColumnFormatter) printExtended(colwf string, roww int, rownum int, row []string) {
+func (c *ColumnFormatter) printExtended(colw int, roww int, rownum int, row []string) {
 	if !c.OmitLineDrawing {
-		fmt.Fprintf(c.Output, colwf, fmt.Sprintf("row %d", rownum))
+		fmt.Fprintf(c.Output, "%-[2]*[1]s", fmt.Sprintf("row %d", rownum), colw)
 		c.Output.Write(plusminus)
 		c.Output.Write(c.dashes(roww))
 	}
 	c.Output.Write(newline)
 	for i, v := range row {
 		if i < len(c.columnNames) {
-			fmt.Fprintf(c.Output, colwf, c.columnNames[i])
+			fmt.Fprintf(c.Output, "%-[2]*[1]s", c.columnNames[i], colw)
 		} else {
-			fmt.Fprintf(c.Output, colwf, "")
+			fmt.Fprintf(c.Output, "%-[2]*[1]s", "", colw)
 		}
 		if !c.OmitLineDrawing {
 			c.Output.Write(spacepipe)

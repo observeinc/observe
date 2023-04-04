@@ -31,7 +31,7 @@ func init() {
 	flagsQuery = pflag.NewFlagSet("query", pflag.ContinueOnError)
 	flagsQuery.StringVarP(&flagQueryText, "query", "q", "", "OPAL query text")
 	flagsQuery.StringVarP(&flagQueryFile, "file", "f", "", "file containing OPAL query text")
-	flagsQuery.StringSliceVarP(&flagQueryInputs, "input", "i", nil, "input datasets: ID or workspace:name")
+	flagsQuery.StringSliceVarP(&flagQueryInputs, "input", "i", nil, "input datasets: ID or workspace.name")
 	flagsQuery.BoolVarP(&flagQueryJSON, "json", "j", false, "output in nd-JSON format")
 	flagsQuery.Lookup("json").NoOptDefVal = "true"
 	flagsQuery.BoolVarP(&flagQueryCSV, "csv", "c", false, "output in CSV format")
@@ -47,7 +47,7 @@ func init() {
 	flagsQuery.StringVar(&flagQueryFormat, "format", "", "specify output format: table, extended, csv, ndjson")
 	RegisterCommand(&Command{
 		Name:  "query",
-		Help:  "Run an OPAL query. Provide the query either on command line, or in file. Provide the query time window using some combination of start time, end time, and duration, with defaults being 1 hour, leading up to 'now'. Use 'observe help query' for more information on specifying time.",
+		Help:  "Run an OPAL query.",
 		Flags: flagsQuery,
 		Func:  cmdQuery,
 	})
@@ -172,6 +172,7 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 			op.Debug("input[%d] @%s <- datasetId(%d)\n", i, pieces[0], i64)
 		} else {
 			if strings.Index(pieces[1], ".") == -1 {
+				op.Debug("default workspace=%s\n", cfg.Workspace)
 				if cfg.Workspace != "" {
 					pieces[1] = cfg.Workspace + "." + pieces[1]
 				}

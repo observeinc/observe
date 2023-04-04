@@ -112,7 +112,8 @@ var timePiecesRegex = regexp.MustCompile(`^([^-+@][^@]*)?(@[0-9]*[smhd])? *([+-]
 // The given input strings should be a date-time in YYYY-MM-DD HH:MM:SS format,
 // or some variation thereof. Also, epoch values of seconds, milliseconds,
 // nanoseconds are allowed, as long as they are sufficiently positive to be
-// disabiguated.
+// disabiguated. Finally, relative times are also supported, and will be
+// interpreted relative to the 'now' argument.
 func ParseTime(tm string, now time.Time) (time.Time, error) {
 
 	tm = strings.TrimSpace(tm)
@@ -228,14 +229,6 @@ func ReadDuration(tm string) (time.Duration, error) {
 		return time.Duration(i64) * 24 * time.Hour, nil
 	}
 	return 0, ErrInvalidDuration
-}
-
-func lcfirst(s string) string {
-	// lowercase the first character of the string
-	if len(s) > 0 {
-		return strings.ToLower(string(s[0])) + s[1:]
-	}
-	return s
 }
 
 func maybe[T any](t *T) any {

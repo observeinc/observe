@@ -20,7 +20,7 @@ func init() {
 	flagsList.IntVarP(&flagListColWidth, "col-width", "w", 0, "maximum column width; 0 for unlimited")
 	RegisterCommand(&Command{
 		Name:  "list",
-		Help:  "List objects of a particular type. Use `observe help --objects` for a list of object types.",
+		Help:  "List objects of a particular type, optionally matching a substring.",
 		Flags: flagsList,
 		Func:  cmdList,
 	})

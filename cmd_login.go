@@ -25,7 +25,7 @@ func init() {
 	flagsLogin.BoolVarP(&flagLoginSaveConfig, "save", "s", false, "Save the authtoken in the config file.")
 	RegisterCommand(&Command{
 		Name:            "login",
-		Help:            "Generate an authtoken. Either provide email address and password on command line (not recommended,) or the --sso option to get a URL you can open in a browser to finish logging in.",
+		Help:            "Generate an authorization token, from email or web account.",
 		Flags:           flagsLogin,
 		Func:            cmdLogin,
 		Unauthenticated: true,
@@ -36,6 +36,7 @@ var (
 	ErrLoginClashingOptions          = ObserveError{Msg: "cannot use --sso and --read-password together"}
 	ErrLoginSaveRequiresProfile      = ObserveError{Msg: "--save requires --profile"}
 	ErrLoginEmailRequired            = ObserveError{Msg: "email address required"}
+	ErrLoginEmailOrUserIdRequired    = ObserveError{Msg: "email address or user ID required"}
 	ErrLoginEmailAndPasswordRequired = ObserveError{Msg: "email address and password required"}
 	ErrLoginPasswordIsNotValid       = ObserveError{Msg: "password is not valid"}
 	ErrLoginRequiresCustomerId       = ObserveError{Msg: "customerid is required for login"}
@@ -92,7 +93,7 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 	}
 	if flagLoginSSO {
 		if len(args) != 2 {
-			return ErrLoginEmailRequired
+			return ErrLoginEmailOrUserIdRequired
 		}
 		return cmdLoginDelegated(cfg, op, hc, args[1])
 	} else if flagLoginReadPassword {

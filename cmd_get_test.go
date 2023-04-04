@@ -15,10 +15,10 @@ func TestCmdGetWorkspace(t *testing.T) {
 	if !strings.Contains(fix.op.DebugBuf.String(), "Authorization=Bearer 12345 legit-authtoken") {
 		t.Error("unexpected debug output:", fix.op.DebugBuf.String())
 	}
-	if diff := cmp.Diff(fix.op.ErrorBuf.String(), ``); diff != "" {
+	if diff := fix.op.ErrorBuf.String(); diff != "" {
 		t.Error("unexpected error output:", diff)
 	}
-	if diff := cmp.Diff(fix.op.InfoBuf.String(), ``); diff != "" {
+	if diff := fix.op.InfoBuf.String(); diff != "" {
 		t.Error("unexpected info output:", diff)
 	}
 	if diff := cmp.Diff(fix.op.OutputBuf.String(), `object:

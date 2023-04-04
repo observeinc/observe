@@ -1,5 +1,7 @@
 # query
 
+    observe query -q 'limit 4' -i 'Default.System' -x
+
 The query command allows you to run OPAL queries on data in your Observe
 workspace. You can specify one or more input datasets, and perform joins,
 unions, aggregation, and all the rest of the powerful OPAL temporal relational
@@ -57,14 +59,14 @@ which is a comma-separated list of dataset IDs (or paths) and input names. The
 first input will be given the name `_` if not specified; each additional input
 needs a name. As an example:
 
-    observe query -Q 'leftjoin host_ip=@right.dst_ip, source:@right.src_ip' \
-        -I '41021818,right=41012929'
+    observe query -q 'leftjoin host_ip=@right.dst_ip, source:@right.src_ip' \
+        -i '41021818,right=41012929'
 
 You can also use the name of a workspace and dataset as a dataset path, as long
 as the names don't include a comma. You specify these as:
 
-    observe query -Q `leftjoin host_ip=@right.dst_ip, source:@right.src_ip' \
-        -I 'Default.aws/Instance Events,right=network/Flow Logs'
+    observe query -q `leftjoin host_ip=@right.dst_ip, source:@right.src_ip' \
+        -i 'Default.aws/Instance Events,right=network/Flow Logs'
 
 The text form of dataset names is Workspace.Folder/Name, and if you specify no
 workspace in the input, the default workspace name in configuration, if any,

@@ -129,13 +129,13 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 		args = args[1:]
 	}
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "a command is required\n")
-		shorthelp()
+		fmt.Fprintf(os.Stderr, "\nobserve: a command is required\n\n")
+		help()
 	}
 	cmd := FindCommand(args[0])
 	if cmd == nil {
-		fmt.Fprintf(os.Stderr, "there is no command named %q\n", args[0])
-		shorthelp()
+		fmt.Fprintf(os.Stderr, "\nobserve: there is no command named %q\n\n", args[0])
+		help()
 	}
 	var errors []string
 	if !cmd.Unauthenticated {
@@ -151,10 +151,10 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 		}
 	}
 	if len(errors) > 0 {
-		os.Stderr.WriteString("missing required configuration:\n")
+		os.Stderr.WriteString("\nobserve: missing required configuration:\n")
 		os.Stderr.WriteString(strings.Join(errors, ", "))
 		os.Stderr.WriteString("\n")
-		shorthelp()
+		help()
 	}
 	RunRecoverWithTag(cmd.Name, op, func(o Output) error {
 		if cmd.Flags != nil {

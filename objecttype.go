@@ -10,6 +10,7 @@ import (
 // TODO: merge TypeName/GetProperties() with PropertyType for objects.
 type ObjectType interface {
 	TypeName() string
+	Help() string
 
 	CanList() bool
 	List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error)
@@ -33,6 +34,9 @@ type ObjectInstance interface {
 }
 
 var objectTypes = map[string]ObjectType{}
+
+type object = map[string]any
+type array = []any
 
 func RegisterObjectType(t ObjectType, tmpl any) {
 	if _, has := objectTypes[t.TypeName()]; has {
@@ -136,19 +140,6 @@ func calcHasState(props []PropertyDesc) bool {
 	return false
 }
 
-const propertyFlagId = " (id)"
-const propertyFlagComputed = " (computed)"
-
-func propFlags(p PropertyDesc) string {
-	if p.IsId {
-		return propertyFlagId
-	}
-	if p.IsComputed {
-		return propertyFlagComputed
-	}
-	return ""
-}
-
 func writeObjectTypeDocs(op Output, ot ObjectType) {
 	props := ot.GetProperties()
 	hasConfig := calcHasConfig(props)
@@ -156,22 +147,22 @@ func writeObjectTypeDocs(op Output, ot ObjectType) {
 	fmt.Fprintf(op, "\n%s:\n", ot.TypeName())
 	for _, p := range props {
 		if p.IsId {
-			fmt.Fprintf(op, "  %s: %s%s\n", p.Name, p.Type.TypeName(), propFlags(p))
+			fmt.Fprintf(op, "  %s: %s\n", p.Name, p.Type.TypeName())
 		}
 	}
 	if hasConfig {
-		fmt.Fprintf(op, "  config:\n")
+		fmt.Fprint(op, "  config:\n")
 		for _, p := range props {
 			if !p.IsId && !p.IsComputed {
-				fmt.Fprintf(op, "    %s: %s%s\n", p.Name, p.Type.TypeName(), propFlags(p))
+				fmt.Fprintf(op, "    %s: %s\n", p.Name, p.Type.TypeName())
 			}
 		}
 	}
 	if hasState {
-		fmt.Fprintf(op, "  state:\n")
+		fmt.Fprint(op, "  state:\n")
 		for _, p := range props {
 			if !p.IsId && p.IsComputed {
-				fmt.Fprintf(op, "    %s: %s%s\n", p.Name, p.Type.TypeName(), propFlags(p))
+				fmt.Fprintf(op, "    %s: %s\n", p.Name, p.Type.TypeName())
 			}
 		}
 	}

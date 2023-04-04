@@ -1,11 +1,22 @@
 # help
 
-To get help, run:
+General command line options and command list:
 
-    observe --help
-    
     observe help
-    
+
+Documentation README:
+
+    observe help observe
+
+Help for the 'login' command:
+
     observe help login
-    
-    observe help --objects
+
+Help on supported object types:
+
+    observe help objects
+
+Help on a particular object type:
+
+    observe help dataset
+

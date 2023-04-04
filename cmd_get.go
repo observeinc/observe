@@ -16,7 +16,7 @@ func init() {
 	flagsGet = pflag.NewFlagSet("get", pflag.ContinueOnError)
 	RegisterCommand(&Command{
 		Name:  "get",
-		Help:  "Get the state of a particular object identified by type and id. Use `observe help --objects` for a list of object types.",
+		Help:  "Get the state of a particular object identified by type and id.",
 		Flags: flagsGet,
 		Func:  cmdGet,
 	})
