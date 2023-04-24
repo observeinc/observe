@@ -48,7 +48,7 @@ Usage:
   observe [configuration] command [arguments]
 
 Example:
-  observe --customerid "1234567890" --cluster "observeinc.com" login "myname@example.com" --read-password --save
+  observe --customerid "1234567890" --cluster "observeinc.com" login "myname@example.com" --sso
 
 Reads configuration from ~/.config/observe.yaml, and command line.
 
