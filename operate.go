@@ -9,8 +9,11 @@ func RunRecoverWithTag(action string, output Output, cb func(Output) error) {
 	tagged := TaggedOutput{output, action}
 	defer func() {
 		if r := recover(); r != nil {
+			if iv, is := r.(int); is {
+				output.Exit(iv)
+			}
 			tagged.Error("panic: %s\n", r)
-			output.Exit(2)
+			output.Exit(3)
 		}
 	}()
 	err := cb(tagged)

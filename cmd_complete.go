@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"net/http"
+	"os"
 
 	"github.com/posener/complete"
 	"github.com/spf13/pflag"
@@ -21,7 +22,7 @@ func init() {
 	flagsComplete.Lookup("verbose").NoOptDefVal = "true"
 	RegisterCommand(&Command{
 		Name:            "complete",
-		Help:            "Generates command-line completion for the given shell.",
+		Help:            "Generates command-line completion for the given shell. Sets --quiet-exit.",
 		Func:            cmdComplete,
 		Flags:           flagsComplete,
 		Unauthenticated: true,
@@ -30,21 +31,22 @@ func init() {
 }
 
 var ErrCompleteUnknownShell = ObserveError{Msg: "the supported shells are 'bash', 'fish', and 'zsh'."}
-var ErrCompleteFailed = ObserveError{Msg: "command line completion failed"}
+var ErrCompleteFailed = ObserveError{Msg: "command line completion found no match"}
 
 func cmdComplete(cfg *Config, op Output, args []string, hc *http.Client) error {
-	if !flagCompleteVerbose {
-		op = &DefaultOutput{
-			DisableInfo: true,
-			DataOutput:  &bytes.Buffer{},
-		}
-	}
 	switch flagCompleteShell {
 	case "bash":
 	case "fish":
 	case "zsh":
 	default:
 		return ErrCompleteUnknownShell
+	}
+	*FlagQuietExit = true
+	if !flagCompleteVerbose {
+		op = &DefaultOutput{
+			DisableInfo: true,
+			DataOutput:  &bytes.Buffer{},
+		}
 	}
 
 	cmds := complete.Commands{}
@@ -73,6 +75,7 @@ func cmdComplete(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if !cmd.Complete() {
 		return ErrCompleteFailed
 	}
+	os.Stdout.Write(op.(*DefaultOutput).DataOutput.(*bytes.Buffer).Bytes())
 	return nil
 }
 

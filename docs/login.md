@@ -26,7 +26,7 @@ There are three main forms of the `login` command:
    use SSO sign-in such as with SAML. Note that not all SSO IdPs provide an
    email address, and thus this method may not be available to your account.
 
-To successfully `login` you must specify the `customerid` and `cluster` options,
+To successfully `login` you must specify the `customerid` and `site` options,
 but the `authtoken` option is not necessary (because creating one of those is
 the whole point of the command!)
 
@@ -45,6 +45,6 @@ days.
 
     observe --profile staging \
         --customerid $CUSTOMERID \
-        --cluster observeinc.com \
+        --site observeinc.com \
         login $USEREMAIL --sso
 

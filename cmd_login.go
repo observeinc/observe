@@ -41,7 +41,7 @@ var (
 	ErrLoginEmailAndPasswordRequired = ObserveError{Msg: "email address and password required"}
 	ErrLoginPasswordIsNotValid       = ObserveError{Msg: "password is not valid"}
 	ErrLoginRequiresCustomerId       = ObserveError{Msg: "customerid is required for login"}
-	ErrLoginRequiresCluster          = ObserveError{Msg: "cluster is required for login"}
+	ErrLoginRequiresSite             = ObserveError{Msg: "site is required for login"}
 )
 
 // This must match the ID issued for this tool on the server side.
@@ -83,8 +83,8 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if cfg.CustomerIdStr == "" {
 		return ErrLoginRequiresCustomerId
 	}
-	if cfg.ClusterStr == "" {
-		return ErrLoginRequiresCluster
+	if cfg.SiteStr == "" {
+		return ErrLoginRequiresSite
 	}
 	if flagLoginSSO && flagLoginReadPassword {
 		return ErrLoginClashingOptions
@@ -114,7 +114,7 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 }
 
 func cmdLoginReadPassword(cfg *Config, op Output, hc *http.Client, email string) error {
-	pwdata, err := ReadPasswordFromTerminal(fmt.Sprintf("Password for %s.%s: %q: ", cfg.CustomerIdStr, cfg.ClusterStr, email))
+	pwdata, err := ReadPasswordFromTerminal(fmt.Sprintf("Password for %s.%s: %q: ", cfg.CustomerIdStr, cfg.SiteStr, email))
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func cmdLoginSuccess(cfg *Config, op Output, accessKey string, saveConfig bool, 
 					if p, is := this.(map[string]any); is {
 						p["authtoken"] = accessKey
 						p["customerid"] = cfg.CustomerIdStr
-						p["cluster"] = cfg.ClusterStr
+						p["site"] = cfg.SiteStr
 					} else {
 						return ErrCouldNotParseConfig
 					}
@@ -214,7 +214,7 @@ func cmdLoginSuccess(cfg *Config, op Output, accessKey string, saveConfig bool, 
 					plist[profileName] = map[string]any{
 						"authtoken":  accessKey,
 						"customerid": cfg.CustomerIdStr,
-						"cluster":    cfg.ClusterStr,
+						"site":       cfg.SiteStr,
 					}
 				}
 				if err = SaveUntypedConfig(filePath, stuff); err == nil {

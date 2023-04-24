@@ -60,7 +60,7 @@ func startFixture(t *testing.T, reqs ...testRequest) *testFixture {
 	t.Cleanup(srv.Close)
 	tf.cfg = &Config{
 		CustomerIdStr: "12345",
-		ClusterStr:    strings.Split(srv.URL, "//")[1],
+		SiteStr:       strings.Split(srv.URL, "//")[1],
 		AuthtokenStr:  "legit-authtoken",
 	}
 	tf.op = NewCaptureOutput()

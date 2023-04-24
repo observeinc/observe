@@ -5,7 +5,7 @@ import "testing"
 const testConfig = `profile:
   default:
     customerid: 101
-    cluster: observe-eng.com
+    site: observe-eng.com
     authtoken: not-an-authtoken
 `
 

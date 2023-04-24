@@ -85,7 +85,7 @@ func RequestGET[Resp any](cfg *Config, op Output, hc *http.Client, path string, 
 }
 
 func requestCommon(cfg *Config, op Output, hc *http.Client, verb string, path string, body io.Reader, args map[string]string, headers map[string]string) (*http.Response, error) {
-	url := ClusterUrl(cfg, path)
+	url := SiteUrl(cfg, path)
 	if len(args) > 0 {
 		q := url.Query()
 		for k, v := range args {
@@ -113,18 +113,18 @@ func requestCommon(cfg *Config, op Output, hc *http.Client, verb string, path st
 
 var dottedQuadRex = regexp.MustCompile(`^\d+\.\d+\.\d+\.\d+(:\d+)?$`)
 
-func ClusterUrl(cfg *Config, path string) *url.URL {
+func SiteUrl(cfg *Config, path string) *url.URL {
 	protocol := "https://"
 	cidStr := cfg.CustomerIdStr + "."
 	// hack it to allow sandboxes to work easily
-	if strings.HasSuffix(cfg.ClusterStr, ":4444") {
+	if strings.HasSuffix(cfg.SiteStr, ":4444") {
 		protocol = "http://"
 	}
-	if dottedQuadRex.MatchString(cfg.ClusterStr) {
+	if dottedQuadRex.MatchString(cfg.SiteStr) {
 		cidStr = ""
 		protocol = "http://"
 	}
-	str := fmt.Sprintf("%s%s%s%s", protocol, cidStr, cfg.ClusterStr, path)
+	str := fmt.Sprintf("%s%s%s%s", protocol, cidStr, cfg.SiteStr, path)
 	ret, err := url.Parse(str)
 	if err != nil {
 		panic(fmt.Sprintf("Somehow, a bad URL was constructed: %q: %s", str, err))

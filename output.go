@@ -57,7 +57,7 @@ func (d DefaultOutput) Timestamp(kind string) string {
 }
 
 func (t DefaultOutput) Exit(i int) {
-	os.Exit(i)
+	OsExit(i)
 }
 
 type TaggedOutput struct {

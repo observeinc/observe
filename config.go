@@ -13,7 +13,7 @@ var ErrCouldNotParseConfig = ObserveError{Msg: "could not parse config"}
 
 type Config struct {
 	CustomerIdStr string `json:"customerid" yaml:"customerid"`
-	ClusterStr    string `json:"cluster" yaml:"cluster"`
+	SiteStr       string `json:"site" yaml:"site"`
 	AuthtokenStr  string `json:"authtoken" yaml:"authtoken"`
 	Quiet         bool   `json:"quiet" yaml:"quiet"`
 	Debug         bool   `json:"debug" yaml:"debug"`
@@ -50,7 +50,7 @@ func ParseConfig(data []byte, cfg *Config, path string, profile string, required
 	dec.KnownFields(true)
 	var cy ConfigYaml
 	if err := dec.Decode(&cy); err != nil {
-		return ErrCouldNotParseConfig
+		return ErrCouldNotParseConfig.WithInner(err)
 	}
 	if cy.Profile == nil {
 		if required {
@@ -62,8 +62,8 @@ func ParseConfig(data []byte, cfg *Config, path string, profile string, required
 		if s.CustomerIdStr != "" {
 			cfg.CustomerIdStr = s.CustomerIdStr
 		}
-		if s.ClusterStr != "" {
-			cfg.ClusterStr = s.ClusterStr
+		if s.SiteStr != "" {
+			cfg.SiteStr = s.SiteStr
 		}
 		if s.AuthtokenStr != "" {
 			cfg.AuthtokenStr = s.AuthtokenStr

@@ -18,7 +18,7 @@ import (
 
 var FlagProfile = pflag.StringP("profile", "P", "default", "The name of a section in the ~/.config/observe.yaml config file. Make empty to read no profile. Can also be specified in environment OBSERVE_PROFILE")
 var FlagCustomerId = pflag.StringP("customerid", "C", "", "The numeric ID of your Observe tenant.")
-var FlagClusterStr = pflag.StringP("cluster", "U", "", "The domain of your Observe tenant cluster. Can include :port if needed.")
+var FlagSiteStr = pflag.StringP("site", "S", "", "The domain of your Observe tenant site. Can include :port if needed.")
 var FlagAuthtokenStr = pflag.StringP("authtoken", "A", "", "The bearer token for Observe authorization. May be two-part with a space separator. Does not include 'Bearer' word.")
 var FlagOutput = pflag.StringP("output", "O", "", "The output file name for data output. If empty or '-', output goes to stdout.")
 var FlagQuiet = pflag.BoolP("quiet", "Q", false, "Don't output info logs.")
@@ -28,6 +28,7 @@ var FlagHelp = pflag.BoolP("help", "h", false, "Print help.")
 var FlagShowConfig = pflag.BoolP("show-config", "", false, "Print configuration before running command.")
 var FlagConfigFile = pflag.String("config", "", "Read configuration from given file rather than ~/config/observe.yaml. Can also be specified in environment OBSERVE_CONFIG.")
 var FlagWorkspace = pflag.String("workspace", "", "Default workspace to assume for objects if none is specified.")
+var FlagQuietExit = pflag.BoolP("quiet-exit", "E", false, "Return successful exit code even on failure.")
 
 var flagsParsed = false
 
@@ -58,6 +59,7 @@ func ParseFlags() {
 		pflag.Lookup("quiet").NoOptDefVal = "true"
 		pflag.Lookup("debug").NoOptDefVal = "true"
 		pflag.Lookup("timestamp").NoOptDefVal = "true"
+		pflag.Lookup("quiet-exit").NoOptDefVal = "true"
 		pflag.SetInterspersed(false)
 		pflag.Parse()
 		envProfile := os.Getenv("OBSERVE_PROFILE")
@@ -80,8 +82,8 @@ func InitConfigFromFileAndFlags(cfg *Config, op *DefaultOutput) {
 	if *FlagCustomerId != "" {
 		cfg.CustomerIdStr = *FlagCustomerId
 	}
-	if *FlagClusterStr != "" {
-		cfg.ClusterStr = *FlagClusterStr
+	if *FlagSiteStr != "" {
+		cfg.SiteStr = *FlagSiteStr
 	}
 	if *FlagAuthtokenStr != "" {
 		cfg.AuthtokenStr = *FlagAuthtokenStr
@@ -142,8 +144,8 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 		if cfg.CustomerIdStr == "" {
 			errors = append(errors, "customerid")
 		}
-		if cfg.ClusterStr == "" {
-			errors = append(errors, "cluster")
+		if cfg.SiteStr == "" {
+			errors = append(errors, "site")
 		}
 		if cfg.AuthtokenStr == "" {
 			// the login command doesn't need an authtoken
@@ -164,7 +166,7 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 				if !strings.Contains(err.Error(), "pflag: help requested") {
 					cmd.Flags.PrintDefaults()
 				}
-				os.Exit(1)
+				OsExit(2)
 			}
 			args = append([]string{args[0]}, cmd.Flags.Args()...)
 		}

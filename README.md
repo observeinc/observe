@@ -19,10 +19,10 @@ The Observe API is documented at:
 ## Quick Start
 
 Assuming you know your customer id (the numeric identifier for your tenant
-instance,) your cluster URL (the hostname part of the URL) and you have a login
+instance,) your site URL (the hostname part of the URL) and you have a login
 with email/password available, you can run it like so:
 
-    $ observe --customerid 180316196377 --cluster observeinc.com login myname@example.com --read-password
+    $ observe --customerid 180316196377 --site observeinc.com login myname@example.com --read-password
     Password for 180316196377.observeinc.com: "myname@example.com": 
     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     login: saved authtoken to section "default" in config file "/home/myname/.config/observe.yaml"
@@ -67,7 +67,7 @@ service:
 1. Customer ID. This is the numeric identifier of the URL you use to interact
    with the Observe application. If your URL looks something like this,
    `https://180316196377.observeinc.com/`, then it is the `180316196377` part.
-2. Cluster URL. This is the hostname part of the URL you use to interact with
+2. Site URL. This is the hostname part of the URL you use to interact with
    the Observe application. If your URL looks something like this,
    `180316196377.observeinc.com`, then it is the `observeinc.com` part.
 3. Authentication token. This is the credential that tells the system who you
@@ -77,7 +77,7 @@ service:
 
 The customer ID is specified with the `--customerid` configuration option.
 
-The cluster URL is specified with the `--cluster` configuration option.
+The site URL is specified with the `--site` configuration option.
 
 The authentication token is specified with the `--authtoken` option.
 
@@ -95,7 +95,7 @@ To see a list of all options and commands, use `observe help`
 ## Profile Files
 
 The file `~/.config/observe.yaml` can store your commonly used `config options`
-like customer ID and cluster URL and even authtoken (if handled with care.) The
+like customer ID and site URL and even authtoken (if handled with care.) The
 file is a YAML file with a list of profiles, where you can choose a profile
 using the `--profile` command-line option. A profile named `default` will be
 used if no other profile is specified. You can specify another file for this
@@ -107,11 +107,11 @@ corresponding command-line `config-option`. Here is an example:
     profiles:
       default:
         customerid: "133742069123"
-        cluster: "observeinc.com"
+        site: "observeinc.com"
         authtoken: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
       testing:
         customerid: "180316196377"
-        cluster: "observe-testing.com"
+        site: "observe-testing.com"
         authtoken: "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
         timestamp: true
         workspace: Testing

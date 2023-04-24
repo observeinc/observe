@@ -48,7 +48,7 @@ Usage:
   observe [configuration] command [arguments]
 
 Example:
-  observe --customerid "1234567890" --cluster "observeinc.com" login "myname@example.com" --read-password --save
+  observe --customerid "1234567890" --site "observeinc.com" login "myname@example.com" --read-password --save
 
 Reads configuration from ~/.config/observe.yaml, and command line.
 
@@ -61,7 +61,7 @@ func help() {
 	pflag.PrintDefaults()
 	PrintCommands(os.Stderr)
 	os.Stderr.WriteString("\nUse 'observe help observe' for more help and 'observe help objects' for object types.\n")
-	os.Exit(1)
+	OsExit(2)
 }
 
 func PrintCommands(out io.Writer) {

@@ -32,7 +32,7 @@ func main() {
 		err := m.Encode(cfg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
-			op.Exit(1)
+			op.Exit(2)
 		}
 	}
 	RunCommandWithConfig(&cfg, op, pflag.Args(), http.DefaultClient)

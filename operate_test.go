@@ -20,9 +20,9 @@ func TestOperate(t *testing.T) {
 			return fmt.Errorf("some error")
 		})
 	}()
-	// the Exit(1) gets caught, and turns into Exit(2) ...
-	if q.(int) != 2 {
-		t.Fatal("expected error exit 2:", q)
+	// the Exit(1) gets caught, and turns into Exit(3) ...
+	if q.(int) != 3 {
+		t.Fatal("expected error exit 3:", q)
 	}
 	if s := string(op.InfoBuf.Bytes()); s != "action: an info\n" {
 		t.Errorf("unexpected Info: %q", s)

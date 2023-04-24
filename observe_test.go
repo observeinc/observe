@@ -14,17 +14,18 @@ func TestFlagsConfig(t *testing.T) {
 	*FlagProfile = ""
 	*FlagConfigFile = ""
 	*FlagCustomerId = "101"
-	*FlagClusterStr = "observe-sandbox.com:4444"
+	*FlagSiteStr = "observe-sandbox.com:4444"
 	*FlagAuthtokenStr = "some-authtoken-i-guess"
 	*FlagQuiet = true
 	*FlagDebug = true
+	*FlagQuietExit = false
 	var op DefaultOutput
 	var cfg Config
 	InitConfigFromFileAndFlags(&cfg, &op)
 
 	if diff := cmp.Diff(cfg, Config{
 		CustomerIdStr: "101",
-		ClusterStr:    "observe-sandbox.com:4444",
+		SiteStr:       "observe-sandbox.com:4444",
 		AuthtokenStr:  "some-authtoken-i-guess",
 		Quiet:         true,
 		Debug:         true,

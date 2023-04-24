@@ -19,7 +19,7 @@ type Command struct {
 	// The function will be given the config, the output printer, and remaining arguments,
 	// where the subcommand name is the first string.
 	Func func(cfg *Config, op Output, args []string, hc *http.Client) error
-	// This command doens't make use of authtoken (and maybe not customerid or cluster)
+	// This command doens't make use of authtoken (and maybe not customerid or site)
 	Unauthenticated bool
 	// This command isn't shown as part of help
 	Unlisted bool

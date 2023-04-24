@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // The rule for turning errors into ObserveError is:
 //
@@ -46,4 +49,17 @@ func (e ObserveError) Unwrap() error {
 	return e.Inner
 }
 
+func (e ObserveError) WithInner(err error) ObserveError {
+	ret := e
+	ret.Inner = err
+	return ret
+}
+
 var ErrNotImplemented = ObserveError{Msg: "not implemented"}
+
+func OsExit(status int) {
+	if !*FlagQuietExit {
+		os.Exit(status)
+	}
+	os.Exit(0)
+}
