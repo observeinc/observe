@@ -122,3 +122,18 @@ Some example times are:
 * 1682007600@1d (epoch seconds: UNIX, snapped to start of UTC day)
 * 1682007600000 (epoch milliseconds: Java and Javascript)
 * 1682007600000000000 (epoch nanoseconds: Go, C++, OPAL)
+
+## Example
+
+    observe query \
+        --input '41021818,right=41012929' \
+        --relative '4h' \
+        --end-time '@1h' \
+        --col-width 0 \
+        --extended \
+        --query "leftjoin host_ip=@right.dst_ip, source:@right.src_ip, name:@right.ip_name | filter name ~ /^ru-/ | limit 4"
+
+## Example
+
+    observe query -i 41007104,pods=41007085 -x -q 'join podName=@pods.name, @pods.restartCount | limit 1'
+

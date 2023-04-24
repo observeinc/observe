@@ -13,7 +13,7 @@ var (
 	flagsLogin            *pflag.FlagSet
 	flagLoginSSO          bool
 	flagLoginReadPassword bool
-	flagLoginSaveConfig   bool
+	flagLoginNoSaveConfig bool
 )
 
 func init() {
@@ -22,7 +22,8 @@ func init() {
 	flagsLogin.Lookup("sso").NoOptDefVal = "true"
 	flagsLogin.BoolVarP(&flagLoginReadPassword, "read-password", "r", false, "Read password from stdin (avoid putting it on command line).")
 	flagsLogin.Lookup("read-password").NoOptDefVal = "true"
-	flagsLogin.BoolVarP(&flagLoginSaveConfig, "save", "s", false, "Save the authtoken in the config file.")
+	flagsLogin.BoolVarP(&flagLoginNoSaveConfig, "no-save", "s", false, "Don't save the authtoken in the config file.")
+	flagsLogin.Lookup("no-save").NoOptDefVal = "true"
 	RegisterCommand(&Command{
 		Name:            "login",
 		Help:            "Generate an authorization token, from email or web account.",
@@ -88,7 +89,7 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if flagLoginSSO && flagLoginReadPassword {
 		return ErrLoginClashingOptions
 	}
-	if flagLoginSaveConfig && *FlagProfile == "" {
+	if !flagLoginNoSaveConfig && *FlagProfile == "" {
 		return ErrLoginSaveRequiresProfile
 	}
 	if flagLoginSSO {
@@ -140,7 +141,7 @@ func cmdLoginEmailPassword(cfg *Config, op Output, hc *http.Client, email, passw
 		}
 		return NewObserveError(nil, "status %d", status)
 	}
-	return cmdLoginSuccess(cfg, op, resp.AccessKey, flagLoginSaveConfig, GetConfigFilePath(), *FlagProfile)
+	return cmdLoginSuccess(cfg, op, resp.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile)
 }
 
 func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) error {
@@ -175,7 +176,7 @@ func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) er
 		} else if resp2.AccessKey != "" {
 			op.Debug("determined that request %s was accepted\n", resp1.ServerToken)
 			// success!
-			return cmdLoginSuccess(cfg, op, resp2.AccessKey, flagLoginSaveConfig, GetConfigFilePath(), *FlagProfile)
+			return cmdLoginSuccess(cfg, op, resp2.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile)
 		} else {
 			// failure!
 			op.Debug("determined that request %s was denied\n", resp1.ServerToken)

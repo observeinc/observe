@@ -100,7 +100,7 @@ func requestCommon(cfg *Config, op Output, hc *http.Client, verb string, path st
 		return nil, NewObserveError(err, "Client error")
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", fmt.Sprintf("observe/%s (%s) g=%s", strings.TrimSpace(ReleaseVersion), runtime.GOOS, strings.TrimSpace(GitCommit)+strings.TrimSpace(GitModified)))
+	request.Header.Set("User-Agent", fmt.Sprintf("observe/%s (%s) g=%s", strings.TrimSpace(ReleaseVersion), runtime.GOOS, strings.TrimSpace(GitCommit)))
 	for k, v := range headers {
 		request.Header.Set(k, v)
 	}

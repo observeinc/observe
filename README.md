@@ -22,7 +22,7 @@ Assuming you know your customer id (the numeric identifier for your tenant
 instance,) your cluster URL (the hostname part of the URL) and you have a login
 with email/password available, you can run it like so:
 
-    $ observe --customerid 180316196377 --cluster observeinc.com login myname@example.com --read-password --save
+    $ observe --customerid 180316196377 --cluster observeinc.com login myname@example.com --read-password
     Password for 180316196377.observeinc.com: "myname@example.com": 
     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     login: saved authtoken to section "default" in config file "/home/myname/.config/observe.yaml"
@@ -36,7 +36,8 @@ with email/password available, you can run it like so:
 The login command will save the authentication token generated in a local
 profile that will be re-used when you run other commands. If you do not want to
 save this credential in that file, you can specify `--authtoken` on the command
-line instead, and should not use `--save` when logging in.
+line instead, and should not use `--no-save` when logging in. The authtoken
+will be printed to stdout in either case.
 
 If you use an SSO SAML integration such as Okta, Azure AD, Google, or PingOne,
 then see the section about the `login` command for how to generate credentials.

@@ -18,3 +18,10 @@ derived from other configurations or the system itself.
 For example, when you save a dataset, the "name" is a config property, whereas
 the modification date is a state property, because it is derived by the system
 when saving, rather than provided as direct input.
+
+If you want to list some or all objects of a particular kind, matching some
+substring, use `list`.
+
+## Example
+
+    observe get dataset 41042071

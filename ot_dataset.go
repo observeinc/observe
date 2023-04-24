@@ -59,7 +59,7 @@ var ObjectTypeDataset ObjectType = &objectTypeDataset{}
 
 // TODO: We should extract the input/output structs from GQL schema and use
 // guided codegen to generate these object type definitions.
-var propertyDescDatatype = []PropertyDesc{
+var propertyDescDataset = []PropertyDesc{
 	{"id", PropertyTypeInteger, false, true, func(o any) any { return o.(*objectDataset).Id }, func(o any, v any) { o.(*objectDataset).Id = v.(int64) }},
 	{"path", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Path }, func(o any, v any) { o.(*objectDataset).Path = v.(string) }},
 	{"workspace", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).Workspace }, func(o any, v any) { o.(*objectDataset).Workspace = v.(int64) }},
@@ -134,7 +134,7 @@ func (*objectTypeDataset) CanList() bool                   { return true }
 func (*objectTypeDataset) CanGet() bool                    { return true }
 func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"workspace", "path"} }
 func (*objectTypeDataset) GetProperties() []PropertyDesc {
-	return propertyDescDatatype
+	return propertyDescDataset
 }
 
 func (ot *objectTypeDataset) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {

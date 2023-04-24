@@ -14,14 +14,35 @@ import (
 // remember to trim space from this when using it
 var (
 	GitCommit      string = "(devel)"
-	GitModified    string = ""
 	ReleaseVersion string = "(devel)"
+	helpText       string
 )
 
-var helpText = `
+func init() {
+	// `ReadBuildInfo` will fail for binaries built using bazel because it does
+	// not support build stamping. This binary is intended to be installed via
+	// `go install` for public consumers where `ReadBuildInfo` will succeed.
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, s := range bi.Settings {
+			if s.Key == "vcs.revision" {
+				GitCommit = s.Value
+			}
+			if s.Key == "vcs.modified" {
+				if s.Value == "true" {
+					GitCommit += "-modified"
+				}
+			}
+		}
+		// This will always be (devel) when building from the source tree. According
+		// to https://github.com/golang/go/issues/29228, the only way to get a
+		// correct version is to use `go install repo.com/path/to/cmd@version`.
+		ReleaseVersion = bi.Main.Version
+	}
+
+	helpText = `
 Observe command line tool
 ` + strings.TrimSpace(ReleaseVersion) + `
-` + strings.TrimSpace(GitCommit) + strings.TrimSpace(GitModified) + `
+` + strings.TrimSpace(GitCommit) + `
 
 Usage:
   observe [configuration] command [arguments]
@@ -32,24 +53,10 @@ Example:
 Reads configuration from ~/.config/observe.yaml, and command line.
 
 `
-
-func init() {
-	bi, _ := debug.ReadBuildInfo()
-	for _, s := range bi.Settings {
-		if s.Key == "vcs.revision" {
-			GitCommit = s.Value
-		}
-		if s.Key == "vcs.modified" {
-			if s.Value == "true" {
-				GitModified = "-modified"
-			}
-		}
-	}
-	ReleaseVersion = bi.Main.Version
 }
 
 func help() {
-	os.Stderr.WriteString(helpText())
+	os.Stderr.WriteString(helpText)
 	os.Stderr.WriteString("Configuration options:\n\n")
 	pflag.PrintDefaults()
 	PrintCommands(os.Stderr)

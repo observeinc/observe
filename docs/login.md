@@ -30,13 +30,21 @@ To successfully `login` you must specify the `customerid` and `cluster` options,
 but the `authtoken` option is not necessary (because creating one of those is
 the whole point of the command!)
 
-With the `--save` option, the `login` command will update the profile you use
-to store the authtoken in the `~/.config/observe.yaml` file. You can specify
-which profile it will create or update with the `--profile` configuration
-option before the `login` command.
+Unless you specify the `--no-save` option, the `login` command will update the
+profile you use to store the authtoken in the `~/.config/observe.yaml` file.
+You can specify which profile it will create or update with the `--profile`
+configuration option before the `login` command.
 
 Once you have logged in, you do not need to do this again, as long as the
 authentication token remains unexpired, and is available either from the config
 file or from the command line for each subsequent command. Configuration tokens
 that are not used will expire after a period, commonly set to approximately ten
 days.
+
+## Example
+
+    observe --profile staging \
+        --customerid $CUSTOMERID \
+        --cluster observeinc.com \
+        login $USEREMAIL --sso
+

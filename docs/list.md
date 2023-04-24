@@ -14,6 +14,8 @@ To list only objects with ID or name matching some particular substring, use
 
     observe list <objecttype> <substring>
 
-For example:
+## Example
 
     observe list dataset Log
+
+    observe list workspace
