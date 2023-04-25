@@ -12,6 +12,7 @@ func TestOperate(t *testing.T) {
 		defer func() {
 			q = recover()
 		}()
+		*FlagQuietExit = false
 		RunRecoverWithTag("action", op, func(o Output) error {
 			o.Info("an info\n")
 			o.Debug("a debug\n")
@@ -20,9 +21,9 @@ func TestOperate(t *testing.T) {
 			return fmt.Errorf("some error")
 		})
 	}()
-	// the Exit(1) gets caught, and turns into Exit(3) ...
-	if q.(int) != 3 {
-		t.Fatal("expected error exit 3:", q)
+	// the Exit(1) gets caught, and forwarded
+	if q.(int) != 1 {
+		t.Fatal("expected error exit 1:", q)
 	}
 	if s := string(op.InfoBuf.Bytes()); s != "action: an info\n" {
 		t.Errorf("unexpected Info: %q", s)
@@ -30,8 +31,8 @@ func TestOperate(t *testing.T) {
 	if s := string(op.DebugBuf.Bytes()); s != "starting action\naction: a debug\n" {
 		t.Errorf("unexpected Debug: %q", s)
 	}
-	// a doozy
-	if s := string(op.ErrorBuf.Bytes()); s != "action: an error\naction: some error\naction: panic: %!s(int=1)\n" {
+	// note: exit doesn't turn into panic; it's funneled and caught
+	if s := string(op.ErrorBuf.Bytes()); s != "action: an error\naction: some error\n" {
 		t.Errorf("unexpected Error: %q", s)
 	}
 	if s := string(op.OutputBuf.Bytes()); s != "a write" {

@@ -44,8 +44,6 @@ signs:
       - "${artifact}"
     artifacts: archive
     output: true
-checksum:
-  disable: true
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
