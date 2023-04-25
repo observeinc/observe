@@ -19,6 +19,8 @@ builds:
       - amd64
       - arm64
     mod_timestamp: "{{.CommitTimestamp}}"
+    hooks:
+      post: codesign --sign A69028128959F0439E6330344FCAD22D6CF8F59F --prefix com.observeinc.developer. --options runtime --timestamp "{{.Path}}"
 archives:
   - format: zip
     files:
@@ -30,19 +32,20 @@ archives:
     format_overrides:
       - goos: linux
         format: "tar.gz"
+signs:
+  - id: observe-macos-sig
+    signature: "${artifact}.sig"
+    ids:
+      - observe-macos
+    cmd: ./s/apple-sign.sh
+    args:
+      - "${artifact}"
+    artifacts: archive
+    output: true
 checksum:
   disable: true
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
-signs:
-  - signature: "${artifact}"
-    ids:
-      - observe-macos
-    cmd: gon
-    args:
-      - s/notarize.hcl
-    artifacts: all
-    output: true
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
