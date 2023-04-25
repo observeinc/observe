@@ -19,6 +19,8 @@ builds:
       - amd64
       - arm64
     mod_timestamp: "{{.CommitTimestamp}}"
+    hooks:
+      post: gon s/notarize.hcl
 archives:
   - format: zip
     files:
@@ -34,15 +36,6 @@ checksum:
   disable: true
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
-signs:
-  - signature: "${artifact}"
-    ids:
-      - observe-macos
-    cmd: gon
-    args:
-      - s/notarize.hcl
-    artifacts: all
-    output: true
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
