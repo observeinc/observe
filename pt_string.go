@@ -16,6 +16,17 @@ var PropertyTypeString PropertyType = &propertyTypeString{}
 
 func (*propertyTypeString) TypeName() string { return "string" }
 
+func (*propertyTypeString) Present(i any) (string, error) {
+	if i == nil {
+		return "", nil
+	}
+	str, is := i.(string)
+	if !is {
+		return "", ErrIsNotString
+	}
+	return str, nil
+}
+
 func (*propertyTypeString) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil

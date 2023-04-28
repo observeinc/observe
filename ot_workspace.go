@@ -19,8 +19,9 @@ var _ ObjectInstance = &objectWorkspace{}
 
 func (o *objectWorkspace) GetInfo() *ObjectInfo {
 	return &ObjectInfo{
-		Id:   strconv.FormatInt(o.Id, 10),
-		Name: o.Name,
+		Id:           strconv.FormatInt(o.Id, 10),
+		Name:         o.Name,
+		Presentation: []string{strconv.FormatInt(o.Id, 10), o.Name},
 	}
 }
 
@@ -49,7 +50,7 @@ func (*objectTypeWorkspace) Help() string {
 }
 func (*objectTypeWorkspace) CanList() bool                   { return true }
 func (*objectTypeWorkspace) CanGet() bool                    { return true }
-func (*objectTypeWorkspace) GetPresentationLabels() []string { return nil }
+func (*objectTypeWorkspace) GetPresentationLabels() []string { return []string{"id", "name"} }
 func (*objectTypeWorkspace) GetProperties() []PropertyDesc   { return propertyDescWorkspace }
 
 func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {
@@ -62,7 +63,7 @@ func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc *http.Client) ([]
 	idp := getpropdesc(ot, "id")
 	namep := getpropdesc(ot, "name")
 	for _, wks := range cu {
-		ret = append(ret, unpackInfo(wks, idp, namep))
+		ret = append(ret, unpackInfo(wks, idp, namep, idp, namep))
 	}
 	return ret, nil
 }

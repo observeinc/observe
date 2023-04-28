@@ -72,14 +72,11 @@ func ForeachObjectType(fn func(ot ObjectType)) {
 func unpackInfo(obj any, idp PropertyDesc, namep PropertyDesc, props ...PropertyDesc) *ObjectInfo {
 	o := obj.(object)
 	ret := ObjectInfo{
-		Id: must(idp.Type.ToString(idp.Type.FromGQL(o[idp.Name]))),
-		// TODO: currently, all strings are presented with quotes.
-		// This makes it possible to separate them from the 'null' literal, but it also
-		// looks dumb.
-		Name: must(namep.Type.ToString(namep.Type.FromGQL(o[namep.Name]))),
+		Id:   must(idp.Type.Present(idp.Type.FromGQL(o[idp.Name]))),
+		Name: must(namep.Type.Present(namep.Type.FromGQL(o[namep.Name]))),
 	}
 	for _, p := range props {
-		ret.Presentation = append(ret.Presentation, must(p.Type.ToString(p.Type.FromGQL(o[p.Name]))))
+		ret.Presentation = append(ret.Presentation, must(p.Type.Present(p.Type.FromGQL(o[p.Name]))))
 	}
 	return &ret
 }

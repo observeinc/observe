@@ -14,6 +14,10 @@ var ErrIsNotInteger = ObserveError{Msg: "value is not an integer"}
 
 func (*propertyTypeInteger) TypeName() string { return "int" }
 
+func (p *propertyTypeInteger) Present(i any) (string, error) {
+	return p.ToString(i)
+}
+
 func (*propertyTypeInteger) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil

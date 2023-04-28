@@ -35,6 +35,9 @@ func (p *propertyInstance) GetValue() any {
 
 type PropertyType interface {
 	TypeName() string
+	// Present() formats for nice output, but not necessarily machine reading
+	Present(any) (string, error)
+	// ToString() formats to an unambiguous format that can be parsed with FromString()
 	ToString(any) (string, error)
 	FromString(string) (any, error)
 	FromGQL(any) any

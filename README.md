@@ -5,9 +5,14 @@ using the Observe API, without needing to use curl. Observe is a cloud based
 observability platform that models machine data to help you debug issues with
 software and businesses fast, and you can learn more about it at [https://observeinc.com/](https://observeinc.com)
 
-To install this tool, if you have `go` installed, you can run:
+To install this tool, if you have `go` and `git` installed, you can run:
 
-    go install github.com/observeinc/observe
+    git clone github.com/observeinc/observe observe-tool
+    cd observe-tool
+    go install
+
+The binary will show up in your `go` `bin` directory, whatever that is (this
+depends on how you installed `go` and what your environment is.)
 
 If you don't have `go` installed, you can download pre-built binaries for
 popular operating systems at [https://github.com/observeinc/observe/releases](https://github.com/observeinc/observe/releases)
@@ -22,22 +27,42 @@ Assuming you know your customer id (the numeric identifier for your tenant
 instance,) your site URL (the hostname part of the URL) and you have a login
 with email/password available, you can run it like so:
 
-    $ observe --customerid 180316196377 --site observeinc.com login myname@example.com --read-password
-    Password for 180316196377.observeinc.com: "myname@example.com": 
+### Log In
+
+    $ observe --customerid 180316196377 --site observeinc.com login myname@example.com --sso
+    Please visit https://180316196377.observeinc.com/settings/account?expectedUid=4711&serverToken=YUMMYTOKENFORTHEWINGOESHERE
     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     login: saved authtoken to section "default" in config file "/home/myname/.config/observe.yaml"
-    
+
+### Run a Query
+
     $ observe query -q 'pick_col timestamp, log | limit 10' -i 'Default.kubernetes/Container Logs'
     | timestamp           | log                                                       |
     -----------------------------------------------------------------------------------
     | 1679497866772157872 | E0420 16:20:00.123456 1 package/file.go:123] Hello World! |
     ...
 
+### Getting Help
+
+    observe --help
+    observe help
+    observe help list
+    observe help query
+
+Note that you will need to visit the Observe website using the link provided
+when logged in as the appropriate user, to authorize the login request in the
+web app. If you don't want to use this flow, and you have a direct
+(email/password) login, you can skip the `--sso` flag and enter the password
+directly. If you use SSO for Observe for a SSO provider that doesn't provide
+your email address as a user property, you can use the User ID instead of the
+email address. Your User ID for your user can be found in the Observe web app
+in the Settings -> Account Setting tab, at the bottom of the page.
+
 The login command will save the authentication token generated in a local
 profile that will be re-used when you run other commands. If you do not want to
-save this credential in that file, you can specify `--authtoken` on the command
-line instead, and should not use `--no-save` when logging in. The authtoken
-will be printed to stdout in either case.
+save this credential in that file, you must specify `--authtoken` on the command
+line instead for each request, and should use `--no-save` when logging in.
+The authtoken will be printed to stdout in either case.
 
 If you use an SSO SAML integration such as Okta, Azure AD, Google, or PingOne,
 then see the section about the `login` command for how to generate credentials.
@@ -147,4 +172,14 @@ data output redirection is a global configuration option and *not* an option to
 any specific command.
 
 Use `observe help objects` to get help on object types.
+
+## Shell Completion
+
+There is simple support for shell completion. A script that installs the
+complete command for `bash` is included in the source code; you can modify the
+script as appropriate for your shell if you use `zsh` or `fish`. Make sure this
+script is sourced by your shell on start-up, either by adding it to your shell
+profile file, or by installing it in the global shell completions directory for
+your system. (Consult your shell/system/search engine for what the appropriate
+location is for your particular case.)
 

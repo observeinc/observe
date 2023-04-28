@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -19,7 +20,8 @@ func TestCmdLoginUserPassword(t *testing.T) {
 	if diff := cmp.Diff(fix.op.ErrorBuf.String(), ``); diff != "" {
 		t.Error("unexpected error output:", diff)
 	}
-	if diff := cmp.Diff(fix.op.InfoBuf.String(), "login: saved authtoken to section \"default\" in config file \"/home/dev/.config/observe.yaml\"\n"); diff != "" {
+	home := os.Getenv("HOME")
+	if diff := cmp.Diff(fix.op.InfoBuf.String(), "login: saved authtoken to section \"default\" in config file \""+home+"/.config/observe.yaml\"\n"); diff != "" {
 		t.Error("unexpected info output:", diff)
 	}
 	if diff := cmp.Diff(fix.op.OutputBuf.String(), "totally-legit-access-token\n"); diff != "" {
@@ -43,7 +45,8 @@ func TestCmdLoginDelegated(t *testing.T) {
 	if diff := cmp.Diff(fix.op.ErrorBuf.String(), ``); diff != "" {
 		t.Error("unexpected error output:", diff)
 	}
-	if diff := cmp.Diff(fix.op.InfoBuf.String(), "login: saved authtoken to section \"default\" in config file \"/home/dev/.config/observe.yaml\"\n"); diff != "" {
+	home := os.Getenv("HOME")
+	if diff := cmp.Diff(fix.op.InfoBuf.String(), "login: saved authtoken to section \"default\" in config file \""+home+"/.config/observe.yaml\"\n"); diff != "" {
 		t.Error("unexpected info output:", diff)
 	}
 	if diff := cmp.Diff(fix.op.OutputBuf.String(), "totally-legit-access-token\n"); diff != "" {

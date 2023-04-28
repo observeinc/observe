@@ -17,6 +17,20 @@ type propertyTypeORN struct{}
 
 func (*propertyTypeORN) TypeName() string { return "orn" }
 
+func (*propertyTypeORN) Present(i any) (string, error) {
+	if i == nil {
+		return "null", nil
+	}
+	str, is := i.(string)
+	if !is {
+		return "", ErrIsNotORN
+	}
+	if !reORN.MatchString(str) {
+		return "", ErrIsNotORN
+	}
+	return str, nil
+}
+
 func (*propertyTypeORN) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil

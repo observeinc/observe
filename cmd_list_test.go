@@ -21,7 +21,7 @@ func TestCmdListWorkspace(t *testing.T) {
 	if diff := fix.op.InfoBuf.String(); diff != "" {
 		t.Error("unexpected info output:", diff)
 	}
-	if diff := cmp.Diff(fix.op.OutputBuf.String(), `id       name       `+"\n"+`41042069 "The Stuff"`+"\n"); diff != "" {
+	if diff := cmp.Diff(fix.op.OutputBuf.String(), `id       name     `+"\n"+`41042069 The Stuff`+"\n"); diff != "" {
 		t.Error("unexpected data output:", diff)
 	}
 }

@@ -40,7 +40,7 @@ func (o *objectDataset) GetInfo() *ObjectInfo {
 	return &ObjectInfo{
 		Id:           strconv.FormatInt(o.Id, 10),
 		Name:         o.Name,
-		Presentation: []string{strconv.FormatInt(o.Workspace, 10), o.Path},
+		Presentation: []string{strconv.FormatInt(o.Id, 10), o.Path},
 	}
 }
 
@@ -132,13 +132,13 @@ func (*objectTypeDataset) Help() string {
 }
 func (*objectTypeDataset) CanList() bool                   { return true }
 func (*objectTypeDataset) CanGet() bool                    { return true }
-func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"workspace", "path"} }
+func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"id", "path"} }
 func (*objectTypeDataset) GetProperties() []PropertyDesc {
 	return propertyDescDataset
 }
 
 func (ot *objectTypeDataset) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {
-	obj, err := gqlQuery(cfg, op, hc, `query Dataset_List { datasetSearch { dataset { id name workspace:workspaceId path } } }`, object{}, "data", "datasetSearch")
+	obj, err := gqlQuery(cfg, op, hc, `query Dataset_List { datasetSearch { dataset { id name path } } }`, object{}, "data", "datasetSearch")
 	if err != nil || obj == nil {
 		return nil, err
 	}
@@ -146,10 +146,9 @@ func (ot *objectTypeDataset) List(cfg *Config, op Output, hc *http.Client) ([]*O
 	var ret []*ObjectInfo
 	idp := getpropdesc(ot, "id")
 	namep := getpropdesc(ot, "name")
-	workspacep := getpropdesc(ot, "workspace")
 	pathp := getpropdesc(ot, "path")
 	for _, ds := range cu {
-		ret = append(ret, unpackInfo(ds.(object)["dataset"], idp, namep, workspacep, pathp))
+		ret = append(ret, unpackInfo(ds.(object)["dataset"], idp, namep, idp, pathp))
 	}
 	return ret, nil
 }

@@ -16,6 +16,10 @@ var PropertyTypeBoolean PropertyType = &propertyTypeBoolean{}
 
 func (*propertyTypeBoolean) TypeName() string { return "boolean" }
 
+func (p *propertyTypeBoolean) Present(i any) (string, error) {
+	return p.ToString(i)
+}
+
 func (*propertyTypeBoolean) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil

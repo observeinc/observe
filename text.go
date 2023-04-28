@@ -29,6 +29,12 @@ type CSVParsingColumnFormatter struct {
 	inQuoteQuote bool
 }
 
+type TableFormatter interface {
+	SetColumnNames(header []string)
+	AddRow(row []string)
+	Close() error
+}
+
 var newline = []byte{'\n'}
 var plusminus = []byte{' ', '+', '-'}
 var spacepipe = []byte{' ', '|', ' '}

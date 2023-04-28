@@ -10,6 +10,7 @@ import (
 var (
 	flagsList        *pflag.FlagSet
 	flagListExtended bool
+	flagListJSON     bool
 	flagListColWidth int
 )
 
@@ -17,6 +18,8 @@ func init() {
 	flagsList = pflag.NewFlagSet("list", pflag.ContinueOnError)
 	flagsList.BoolVarP(&flagListExtended, "extended", "x", false, "print records vertically")
 	flagsList.Lookup("extended").NoOptDefVal = "true"
+	flagsList.BoolVarP(&flagListJSON, "json", "j", false, "print records as JSON")
+	flagsList.Lookup("json").NoOptDefVal = "true"
 	flagsList.IntVarP(&flagListColWidth, "col-width", "w", 0, "maximum column width; 0 for unlimited")
 	RegisterCommand(&Command{
 		Name:  "list",
@@ -52,18 +55,42 @@ func cmdList(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if err != nil {
 		return NewObserveError(err, "list objects")
 	}
-	out := &ColumnFormatter{
-		Output:          op,
-		OmitLineDrawing: true,
-		ColWidth:        flagListColWidth,
-		ExtendedFormat:  flagListExtended,
-	}
-	out.SetColumnNames(append([]string{"id", "name"}, otyp.GetPresentationLabels()...))
-	for _, i := range infos {
-		if match != "" && !(strings.Contains(strings.ToLower(i.Id), match) || strings.Contains(strings.ToLower(i.Name), match)) {
-			continue
+	var out TableFormatter
+	if flagListJSON {
+		out = &JSONFormatter{
+			Output:         op,
+			ExtendedFormat: flagListExtended,
 		}
-		out.AddRow(append([]string{i.Id, i.Name}, i.Presentation...))
+	} else {
+		out = &ColumnFormatter{
+			Output:          op,
+			OmitLineDrawing: true,
+			ColWidth:        flagListColWidth,
+			ExtendedFormat:  flagListExtended,
+		}
+	}
+	out.SetColumnNames(otyp.GetPresentationLabels())
+	for _, i := range infos {
+		if match != "" {
+			found := false
+			if strings.Contains(strings.ToLower(i.Id), match) {
+				found = true
+			} else if strings.Contains(strings.ToLower(i.Name), match) {
+				found = true
+			} else {
+			MatchLoop:
+				for _, p := range i.Presentation {
+					if strings.Contains(strings.ToLower(p), match) {
+						found = true
+						break MatchLoop
+					}
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		out.AddRow(i.Presentation)
 	}
 	out.Close()
 	return nil
