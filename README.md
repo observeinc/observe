@@ -5,17 +5,19 @@ using the Observe API, without needing to use curl. Observe is a cloud based
 observability platform that models machine data to help you debug issues with
 software and businesses fast, and you can learn more about it at [https://observeinc.com/](https://observeinc.com)
 
-To install this tool, if you have `go` and `git` installed, you can run:
+Download pre-built binaries for popular operating systems at
+[https://github.com/observeinc/observe/releases](https://github.com/observeinc/observe/releases)
+Put the binary somewhere in your PATH and enjoy!
 
-    git clone github.com/observeinc/observe observe-tool
+To install this tool from source, if you have `go` and `git` installed, you can
+run:
+
+    git clone https://github.com/observeinc/observe observe-tool
     cd observe-tool
     go install
 
 The binary will show up in your `go` `bin` directory, whatever that is (this
 depends on how you installed `go` and what your environment is.)
-
-If you don't have `go` installed, you can download pre-built binaries for
-popular operating systems at [https://github.com/observeinc/observe/releases](https://github.com/observeinc/observe/releases)
 
 The Observe API is documented at:
 
