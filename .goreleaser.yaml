@@ -5,10 +5,21 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+    goarch:
+      - amd64
+    mod_timestamp: "{{.CommitTimestamp}}"
+  - binary: observe
+    id: observe-windows
+    env:
+      - CGO_ENABLED=0
+    goos:
       - windows
     goarch:
       - amd64
     mod_timestamp: "{{.CommitTimestamp}}"
+    hooks:
+      post:
+        - cmd: "{{ dir (dir (dir .Path)) }}/s/windows-sign.sh '{{ .Path }}'"
   - binary: observe
     id: observe-macos
     env:
@@ -22,26 +33,41 @@ builds:
     hooks:
       post: codesign --sign A69028128959F0439E6330344FCAD22D6CF8F59F --prefix com.observeinc.developer. --options runtime --timestamp "{{.Path}}"
 archives:
-  - format: zip
+  - id: observe
+    format: zip
     files:
     - README.md
     - observe_completions_bash.sh
     wrap_in_directory: true
     strip_parent_binary_folder: true
     rlcp: true
+    builds:
+      - observe
+      - observe-windows
+    format_overrides:
+      - goos: linux
+        format: "tar.gz"
+  - id: observe-macos
+    format: zip
+    files:
+    - README.md
+    - observe_completions_bash.sh
+    wrap_in_directory: true
+    strip_parent_binary_folder: true
+    rlcp: true
+    builds:
+      - observe-macos
     format_overrides:
       - goos: linux
         format: "tar.gz"
 signs:
-  - id: observe-macos-sig
-    signature: "${artifact}.sig"
-    ids:
+  - ids:
       - observe-macos
+    signature: "${artifact}"
     cmd: sh
     args:
       - "-c"
-      - "s/apple-sign.sh"
-      - "${artifact}"
+      - "s/apple-sign.sh ${artifact}"
     artifacts: archive
     output: true
 snapshot:
