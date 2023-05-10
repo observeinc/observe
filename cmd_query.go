@@ -186,6 +186,7 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	}
 
 	// I'm now ready to formulate the query
+	noLinkify := false
 	req := V1ExportQueryRequest{
 		Query: Query{
 			OutputStage: "query",
@@ -196,6 +197,9 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 					Pipeline: queryText,
 				},
 			},
+		},
+		Presentation: &Presentation{
+			Linkify: &noLinkify,
 		},
 	}
 
@@ -287,8 +291,13 @@ type StageQueryInput struct {
 	DatasetPath *string `json:"datasetPath,omitempty"`
 }
 
+type Presentation struct {
+	Limit   *int64 `json:"limit,omitempty"`
+	Linkify *bool  `json:"linkify,omitempty"`
+}
+
 type V1ExportQueryRequest struct {
 	Query Query `json:"query"`
 	// no rowCount
-	// no presentation
+	Presentation *Presentation `json:"presentation,omitempty"`
 }

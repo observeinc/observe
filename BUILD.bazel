@@ -14,6 +14,7 @@ go_library(
         "error.go",
         "gql.go",
         "help.go",
+        "json.go",
         "main.go",
         "objecttype.go",
         "observe.go",
