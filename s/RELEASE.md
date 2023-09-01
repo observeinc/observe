@@ -1,6 +1,10 @@
 Release process:
 
 1. make sure you have tagged the release and pushed to github:
+   go mod tidy
+   go vendor
+   git add .
+   git commit -m 'release v0.1.2-r3'
    git tag v0.1.2-r3 HEAD
    git push origin HEAD:main
    git push --tags
