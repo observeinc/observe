@@ -35,5 +35,5 @@ func main() {
 			op.Exit(2)
 		}
 	}
-	RunCommandWithConfig(&cfg, op, pflag.Args(), http.DefaultClient)
+	RunCommandWithConfig(&cfg, newFs(), op, pflag.Args(), http.DefaultClient)
 }

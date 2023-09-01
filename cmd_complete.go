@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"net/http"
 	"os"
 
 	"github.com/posener/complete"
@@ -33,7 +32,7 @@ func init() {
 var ErrCompleteUnknownShell = ObserveError{Msg: "the supported shells are 'bash', 'fish', and 'zsh'."}
 var ErrCompleteFailed = ObserveError{Msg: "command line completion found no match"}
 
-func cmdComplete(cfg *Config, op Output, args []string, hc *http.Client) error {
+func cmdComplete(fa FuncArgs) error {
 	switch flagCompleteShell {
 	case "bash":
 	case "fish":
@@ -43,7 +42,7 @@ func cmdComplete(cfg *Config, op Output, args []string, hc *http.Client) error {
 	}
 	*FlagQuietExit = true
 	if !flagCompleteVerbose {
-		op = &DefaultOutput{
+		fa.op = &DefaultOutput{
 			DisableInfo: true,
 			DataOutput:  &bytes.Buffer{},
 		}
@@ -68,14 +67,14 @@ func cmdComplete(cfg *Config, op Output, args []string, hc *http.Client) error {
 		Sub:   cmds,
 		Flags: flags,
 	})
-	cmd.Out = op
+	cmd.Out = fa.op
 
 	// This library writes directly to stdout, so I can't really intercept or
 	// unit test it.
 	if !cmd.Complete() {
 		return ErrCompleteFailed
 	}
-	os.Stdout.Write(op.(*DefaultOutput).DataOutput.(*bytes.Buffer).Bytes())
+	os.Stdout.Write(fa.op.(*DefaultOutput).DataOutput.(*bytes.Buffer).Bytes())
 	return nil
 }
 

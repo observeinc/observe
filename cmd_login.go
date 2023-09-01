@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -79,11 +78,11 @@ type V1LoginDelegatedStatus struct {
 	Message   string `json:"message,omitempty"`
 }
 
-func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
-	if cfg.CustomerIdStr == "" {
+func cmdLogin(fa FuncArgs) error {
+	if fa.cfg.CustomerIdStr == "" {
 		return ErrLoginRequiresCustomerId
 	}
-	if cfg.SiteStr == "" {
+	if fa.cfg.SiteStr == "" {
 		return ErrLoginRequiresSite
 	}
 	if flagLoginSSO && flagLoginReadPassword {
@@ -92,46 +91,48 @@ func cmdLogin(cfg *Config, op Output, args []string, hc *http.Client) error {
 	if !flagLoginNoSaveConfig && *FlagProfile == "" {
 		return ErrLoginSaveRequiresProfile
 	}
+	fa.args = fa.args[1:]
 	if flagLoginSSO {
-		if len(args) != 2 {
-			return ErrLoginEmailOrUserIdRequired
-		}
-		return cmdLoginDelegated(cfg, op, hc, args[1])
+		return cmdLoginDelegated(fa)
 	} else if flagLoginReadPassword {
-		if len(args) != 2 {
-			return ErrLoginEmailRequired
-		}
-		return cmdLoginReadPassword(cfg, op, hc, args[1])
+		return cmdLoginReadPassword(fa)
 	} else {
-		if len(args) == 2 {
-			op.Info("no password provided; use --read-password to read from stdin without this message\n")
-		}
-		if len(args) != 3 {
-			return ErrLoginEmailAndPasswordRequired
-		}
-		return cmdLoginEmailPassword(cfg, op, hc, args[1], args[2])
+		return cmdLoginEmailPassword(fa)
 	}
 }
 
-func cmdLoginReadPassword(cfg *Config, op Output, hc *http.Client, email string) error {
-	pwdata, err := ReadPasswordFromTerminal(fmt.Sprintf("Password for %s.%s: %q: ", cfg.CustomerIdStr, cfg.SiteStr, email))
+func cmdLoginReadPassword(fa FuncArgs) error {
+	if len(fa.args) != 1 {
+		return ErrLoginEmailRequired
+	}
+	email := fa.args[0]
+	pwdata, err := ReadPasswordFromTerminal(fmt.Sprintf("Password for %s.%s: %q: ", fa.cfg.CustomerIdStr, fa.cfg.SiteStr, email))
 	if err != nil {
 		return err
 	}
 	if len(pwdata) < 8 {
 		return ErrLoginPasswordIsNotValid
 	}
-	return cmdLoginEmailPassword(cfg, op, hc, email, string(pwdata))
+	fa.args = append(fa.args, string(pwdata))
+	return cmdLoginEmailPassword(fa)
 }
 
-func cmdLoginEmailPassword(cfg *Config, op Output, hc *http.Client, email, password string) error {
+func cmdLoginEmailPassword(fa FuncArgs) error {
+	if len(fa.args) == 1 {
+		fa.op.Info("no password provided; use --read-password to read from stdin without this message\n")
+	}
+	if len(fa.args) != 2 {
+		return ErrLoginEmailAndPasswordRequired
+	}
+	email := fa.args[0]
+	password := fa.args[1]
 	req := &V1LoginRequest{
 		UserEmail:    email,
 		UserPassword: password,
 		TokenName:    fmt.Sprintf("CLI login from %s", GetHostname()),
 	}
 	var resp V1LoginResponse
-	err, status := RequestPOST(cfg, op, hc, "/v1/login", req, &resp)
+	err, status := RequestPOST(fa.cfg, fa.op, fa.hc, "/v1/login", req, &resp, nil)
 	if err != nil {
 		return err
 	}
@@ -141,10 +142,14 @@ func cmdLoginEmailPassword(cfg *Config, op Output, hc *http.Client, email, passw
 		}
 		return NewObserveError(nil, "status %d", status)
 	}
-	return cmdLoginSuccess(cfg, op, resp.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile)
+	return cmdLoginSuccess{fa.cfg, fa.op, fa.fs, resp.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile}.save()
 }
 
-func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) error {
+func cmdLoginDelegated(fa FuncArgs) error {
+	if len(fa.args) != 1 {
+		return ErrLoginEmailOrUserIdRequired
+	}
+	email := fa.args[0]
 	// this is a flow:
 	// 1. send request to the configured tenant
 	// 2. print a response URL for the user to visit
@@ -156,7 +161,7 @@ func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) er
 		Integration: ObserveToolIntegrationId,
 	}
 	var resp1 V1LoginDelegatedResponse
-	if err, _ := RequestPOST(cfg, op, hc, "/v1/login/delegated", &req1, &resp1); err != nil {
+	if err, _ := RequestPOST(fa.cfg, fa.op, fa.hc, "/v1/login/delegated", &req1, &resp1, nil); err != nil {
 		return NewObserveError(err, "POST error")
 	}
 	if !resp1.Ok {
@@ -165,21 +170,21 @@ func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) er
 	fmt.Fprintf(os.Stderr, "Please visit %s\n", resp1.Url)
 	for {
 		var resp2 V1LoginDelegatedStatus
-		if err, _ := RequestGET(cfg, op, hc, "/v1/login/delegated/"+resp1.ServerToken, nil, &resp2); err != nil {
-			op.Error("will retry after error: %s\n", err)
+		if err, _ := RequestGET(fa.cfg, fa.op, fa.hc, "/v1/login/delegated/"+resp1.ServerToken, nil, nil, &resp2); err != nil {
+			fa.op.Error("will retry after error: %s\n", err)
 			time.Sleep(7 * time.Second) // errors demand slower retries
 		} else if !resp2.Settled {
-			op.Debug("determined that request %s is undetermined\n", resp1.ServerToken)
+			fa.op.Debug("determined that request %s is undetermined\n", resp1.ServerToken)
 			if resp2.Message != "" {
-				op.Info("%s\n", resp2.Message)
+				fa.op.Info("%s\n", resp2.Message)
 			}
 		} else if resp2.AccessKey != "" {
-			op.Debug("determined that request %s was accepted\n", resp1.ServerToken)
+			fa.op.Debug("determined that request %s was accepted\n", resp1.ServerToken)
 			// success!
-			return cmdLoginSuccess(cfg, op, resp2.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile)
+			return cmdLoginSuccess{fa.cfg, fa.op, fa.fs, resp2.AccessKey, !flagLoginNoSaveConfig, GetConfigFilePath(), *FlagProfile}.save()
 		} else {
 			// failure!
-			op.Debug("determined that request %s was denied\n", resp1.ServerToken)
+			fa.op.Debug("determined that request %s was denied\n", resp1.ServerToken)
 			return NewObserveError(nil, "failure: %s", resp2.Message)
 		}
 		// Note that the server side will long-poll, too, so this is mainly
@@ -189,11 +194,21 @@ func cmdLoginDelegated(cfg *Config, op Output, hc *http.Client, email string) er
 }
 
 // After success, report the token to the user and optionally save it to the profile
-func cmdLoginSuccess(cfg *Config, op Output, accessKey string, saveConfig bool, filePath string, profileName string) error {
-	op.Write([]byte(accessKey))
-	op.Write([]byte("\n"))
-	if saveConfig {
-		stuff, err := ReadUntypedConfig(GetConfigFilePath(), false)
+type cmdLoginSuccess struct {
+	cfg         *Config
+	op          Output
+	fs          fileSystem
+	accessKey   string
+	saveConfig  bool
+	filePath    string
+	profileName string
+}
+
+func (c cmdLoginSuccess) save() error {
+	c.op.Write([]byte(c.accessKey))
+	c.op.Write([]byte("\n"))
+	if c.saveConfig {
+		stuff, err := ReadUntypedConfigFromFile(c.fs, GetConfigFilePath(), false)
 		if err != nil {
 			return err
 		}
@@ -202,23 +217,23 @@ func cmdLoginSuccess(cfg *Config, op Output, accessKey string, saveConfig bool, 
 		}
 		if profiles, has := stuff["profile"]; has {
 			if plist, is := profiles.(map[string]any); is {
-				if this, has := plist[profileName]; has {
+				if this, has := plist[c.profileName]; has {
 					if p, is := this.(map[string]any); is {
-						p["authtoken"] = accessKey
-						p["customerid"] = cfg.CustomerIdStr
-						p["site"] = cfg.SiteStr
+						p["authtoken"] = c.accessKey
+						p["customerid"] = c.cfg.CustomerIdStr
+						p["site"] = c.cfg.SiteStr
 					} else {
 						return ErrCouldNotParseConfig
 					}
 				} else {
-					plist[profileName] = map[string]any{
-						"authtoken":  accessKey,
-						"customerid": cfg.CustomerIdStr,
-						"site":       cfg.SiteStr,
+					plist[c.profileName] = map[string]any{
+						"authtoken":  c.accessKey,
+						"customerid": c.cfg.CustomerIdStr,
+						"site":       c.cfg.SiteStr,
 					}
 				}
-				if err = SaveUntypedConfig(filePath, stuff); err == nil {
-					op.Info("saved authtoken to section %q in config file %q\n", profileName, filePath)
+				if err = SaveUntypedConfig(c.fs, c.filePath, stuff); err == nil {
+					c.op.Info("saved authtoken to section %q in config file %q\n", c.profileName, c.filePath)
 				}
 				return err
 			}

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/spf13/pflag"
 )
 
@@ -24,34 +22,34 @@ func init() {
 	})
 }
 
-func cmdHelp(cfg *Config, op Output, args []string, hc *http.Client) error {
+func cmdHelp(fa FuncArgs) error {
 	if flagHelpObjects {
 	}
-	if len(args) == 1 {
+	if len(fa.args) == 1 {
 		help()
 	}
-	if len(args) != 2 {
+	if len(fa.args) != 2 {
 		return NewObserveError(nil, "usage: observe help [command]")
 	}
-	if args[1] == "observe" {
-		return helpFile(op, "README")
+	if fa.args[1] == "observe" {
+		return helpFile(fa.op, "README")
 	}
-	if args[1] == "objects" {
-		return helpObjects(op)
+	if fa.args[1] == "objects" {
+		return helpObjects(fa.op)
 	}
-	cmd := FindCommand(args[1])
+	cmd := FindCommand(fa.args[1])
 	if cmd == nil {
-		ot := GetObjectType(args[1])
+		ot := GetObjectType(fa.args[1])
 		if ot != nil {
-			writeObjectTypeDocs(op, ot)
-			op.Write(newline)
+			writeObjectTypeDocs(fa.op, ot)
+			fa.op.Write(newline)
 			return nil
 		}
-		if args[1] != "" && args[1][0] == '-' {
+		if fa.args[1] != "" && fa.args[1][0] == '-' {
 			return NewObserveError(nil, "the help command takes no options")
 		}
-		return NewObserveError(nil, "there exists no command named %q", args[1])
+		return NewObserveError(nil, "there exists no command named %q", fa.args[1])
 	}
-	op.Write(cmd.Docs)
+	fa.op.Write(cmd.Docs)
 	return nil
 }

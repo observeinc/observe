@@ -11,7 +11,7 @@ func TestCmdListWorkspace(t *testing.T) {
 	fix := startFixture(t,
 		testRequest{"/v1/meta", 200, `{"data":{"currentUser":{"workspaces":[{"id":"41042069","name":"The Stuff","timezone":"PDT"}]}}}`},
 	)
-	RunCommandWithConfig(fix.cfg, fix.op, []string{"list", "workspace"}, fix.hc)
+	RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"list", "workspace"}, fix.hc)
 	if !strings.Contains(fix.op.DebugBuf.String(), "Authorization=Bearer 12345 legit-authtoken") {
 		t.Error("unexpected debug output:", fix.op.DebugBuf.String())
 	}

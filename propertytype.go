@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // TODO: support arrays and objects as properties
@@ -18,6 +19,17 @@ type PropertyDesc struct {
 type PropertyInstance interface {
 	GetDesc() PropertyDesc
 	GetValue() any
+}
+
+// A property map maps to the "canonical" property name, based on some API
+// returned path. This lets you rename a property, and hoist it from an inner
+// object up to the top.
+type PropertyMap map[string]proppath
+
+type proppath []string
+
+func (p proppath) String() string {
+	return strings.Join([]string(p), ".")
 }
 
 type propertyInstance struct {
@@ -78,4 +90,8 @@ func getpropdesc(ot ObjectType, n string) PropertyDesc {
 		}
 	}
 	panic(fmt.Errorf("type %q doesn't have property %q", ot.TypeName(), n))
+}
+
+func mkpath(p string) proppath {
+	return proppath(strings.Split(p, "."))
 }

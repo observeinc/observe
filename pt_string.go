@@ -31,11 +31,17 @@ func (*propertyTypeString) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil
 	}
-	str, is := i.(string)
-	if !is {
+	switch v := i.(type) {
+	case *string:
+		if v == nil {
+			return "null", nil
+		}
+		return strconv.Quote(*v), nil
+	case string:
+		return strconv.Quote(v), nil
+	default:
 		return "", ErrIsNotString
 	}
-	return strconv.Quote(str), nil
 }
 
 func (*propertyTypeString) FromString(s string) (any, error) {

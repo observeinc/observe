@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -27,21 +29,52 @@ var (
 	ErrCannotGet = ObserveError{Msg: "cannot get this object type"}
 )
 
-func cmdGet(cfg *Config, op Output, args []string, hc *http.Client) error {
-	if len(args) != 3 {
+func cmdGet(fa FuncArgs) error {
+	if len(fa.args) != 3 {
 		return ErrGetUsage
 	}
-	otyp := GetObjectType(args[1])
+	otyp := GetObjectType(fa.args[1])
 	if otyp == nil {
 		return ErrUnknownObjectType
 	}
 	if !otyp.CanGet() {
 		return ErrCannotGet
 	}
-	obj, err := otyp.Get(cfg, op, hc, args[2])
+
+	obj, err := otyp.Get(fa.cfg, fa.op, fa.hc, fa.args[2])
 	if err != nil {
-		return NewObserveError(err, "get objects")
+		return NewObserveError(err, "get object type:%s", otyp.TypeName())
 	}
+	return obj.PrintToYaml(fa.op, otyp, obj)
+}
+
+// printToYamlFromJson converts `object` to `yaml`, sorting the top level fields in a deterministic way.
+func printToYamlFromJson(op Output, otyp ObjectType, obj object) error {
+
+	buf := bytes.NewBuffer(nil)
+	enc := yaml.NewEncoder(buf)
+
+	// TODO(OB-20759): make a better way to define ordering by preserving the original order returned by the api.
+	parts := []string{"type", "id", "config", "state", "meta"}
+	for _, key := range parts {
+		val, ok := obj[key]
+		if !ok {
+			continue
+		}
+		if err := enc.Encode(map[string]any{key: val}); err != nil {
+			return err
+		}
+	}
+	str := buf.String()
+	strs := strings.Split(str, "\n---\n")
+	str = strings.Join(strs, "\n")
+	fmt.Fprint(op, str)
+	return nil
+}
+
+// Note: we probably should use yaml/v3, or some more introspection based
+// discovery.
+func printToYamlFromObjectInstance(op Output, otyp ObjectType, obj ObjectInstance) error {
 	fmt.Fprintf(op, "object:\n")
 	fmt.Fprintf(op, "  type: %q\n", otyp.TypeName())
 	vals := obj.GetValues()

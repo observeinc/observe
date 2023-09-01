@@ -13,7 +13,7 @@ func TestCmdLoginUserPassword(t *testing.T) {
 		testRequest{"/v1/login", 200, `{"ok":true,"message":"success","access_key":"totally-legit-access-token"}`},
 	)
 	// this will panic if there's an error
-	RunCommandWithConfig(fix.cfg, fix.op, []string{"login", "me@example.com", "hunter123"}, fix.hc)
+	RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"login", "me@example.com", "hunter123"}, fix.hc)
 	if !strings.Contains(fix.op.DebugBuf.String(), "User-Agent=observe") {
 		t.Error("unexpected debug output:", fix.op.DebugBuf.String())
 	}
@@ -36,7 +36,7 @@ func TestCmdLoginDelegated(t *testing.T) {
 		testRequest{"/v1/login/delegated/some-server-token", 200, `{"ok":true,"settled":true,"accessKey":"totally-legit-access-token"}`},
 	)
 	// this will panic if there's an error
-	RunCommandWithConfig(fix.cfg, fix.op, []string{"login", "me@example.com", "--sso"}, fix.hc)
+	RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"login", "me@example.com", "--sso"}, fix.hc)
 	flagLoginSSO = false // reset options after running
 	fix.Assert()
 	if !strings.Contains(fix.op.DebugBuf.String(), "/v1/login/delegated") {
@@ -58,7 +58,7 @@ func TestLoginMissingPassword(t *testing.T) {
 	fix := startFixture(t)
 	// this will panic if there's an error
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"login", "me@example.com"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"login", "me@example.com"}, fix.hc)
 	})
 	fix.Assert()
 	if !strings.Contains(fix.op.DebugBuf.String(), "starting login") {

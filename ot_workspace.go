@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"strconv"
 )
 
@@ -10,8 +9,7 @@ func init() {
 }
 
 type objectWorkspace struct {
-	Id       int64
-	Name     string
+	workspaceObject
 	Timezone string
 }
 
@@ -34,6 +32,14 @@ func (o *objectWorkspace) GetValues() []PropertyInstance {
 	return r
 }
 
+func (o *objectWorkspace) GetStore() object {
+	return nil
+}
+
+func (o *objectWorkspace) PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error {
+	return printToYamlFromObjectInstance(op, otyp, obj)
+}
+
 type objectTypeWorkspace struct{}
 
 var ObjectTypeWorkspace ObjectType = &objectTypeWorkspace{}
@@ -50,10 +56,13 @@ func (*objectTypeWorkspace) Help() string {
 }
 func (*objectTypeWorkspace) CanList() bool                   { return true }
 func (*objectTypeWorkspace) CanGet() bool                    { return true }
+func (*objectTypeWorkspace) CanCreate() bool                 { return false }
+func (*objectTypeWorkspace) CanUpdate() bool                 { return false }
+func (*objectTypeWorkspace) CanDelete() bool                 { return false }
 func (*objectTypeWorkspace) GetPresentationLabels() []string { return []string{"id", "name"} }
 func (*objectTypeWorkspace) GetProperties() []PropertyDesc   { return propertyDescWorkspace }
 
-func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {
+func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc httpClient) ([]*ObjectInfo, error) {
 	obj, err := gqlQuery(cfg, op, hc, `query Workspace_List { currentUser { workspaces { id name:label } } }`, object{}, "data", "currentUser", "workspaces")
 	if err != nil || obj == nil {
 		return nil, err
@@ -63,12 +72,20 @@ func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc *http.Client) ([]
 	idp := getpropdesc(ot, "id")
 	namep := getpropdesc(ot, "name")
 	for _, wks := range cu {
-		ret = append(ret, unpackInfo(wks, idp, namep, idp, namep))
+		ret = append(ret, unpackInfo(
+			wks,
+			idp,
+			namep,
+			[]PropertyDesc{
+				idp,
+				namep,
+			}...,
+		))
 	}
 	return ret, nil
 }
 
-func (ot *objectTypeWorkspace) Get(cfg *Config, op Output, hc *http.Client, id string) (ObjectInstance, error) {
+func (ot *objectTypeWorkspace) Get(cfg *Config, op Output, hc httpClient, id string) (ObjectInstance, error) {
 	obj, err := gqlQuery(cfg, op, hc, `query Workspace_Get_Id($id: ObjectId!) { workspace(id: $id) { id name:label timezone } }`, object{"id": id}, "data", "workspace")
 	if err != nil {
 		return nil, err
@@ -77,4 +94,16 @@ func (ot *objectTypeWorkspace) Get(cfg *Config, op Output, hc *http.Client, id s
 		return nil, nil
 	}
 	return unpackObject(obj.(object), &objectWorkspace{}, ot.TypeName()), nil
+}
+
+func (ot *objectTypeWorkspace) Create(cfg *Config, op Output, hc httpClient, input object) (ObjectInstance, error) {
+	return nil, nil
+}
+
+func (ot *objectTypeWorkspace) Update(cfg *Config, op Output, hc httpClient, id string, input object) (ObjectInstance, error) {
+	return nil, nil
+}
+
+func (ot *objectTypeWorkspace) Delete(cfg *Config, op Output, hc httpClient, id string) error {
+	return nil
 }
