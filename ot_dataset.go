@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"strconv"
 )
 
@@ -10,21 +9,20 @@ func init() {
 }
 
 type objectDataset struct {
-	Id             int64
-	Name           string
-	Workspace      int64
+	workspaceObject
+	folderObject
+	objectDatasetBase
+}
+
+type objectDatasetBase struct {
 	Path           string
 	Kind           string
-	Description    *string
 	ValidFromField *string
 	ValidToField   *string
 	LabelField     *string
-	IconUrl        *string
 	Version        string
 	UpdatedDate    string
 	PathCost       *int64
-	ManagedById    *int64
-	FolderId       int64
 	// todo: compound property types
 	// CompilationError *CompilationError
 	// PrimaryKey []string
@@ -53,6 +51,14 @@ func (o *objectDataset) GetValues() []PropertyInstance {
 	return r
 }
 
+func (o *objectDataset) GetStore() object {
+	return nil
+}
+
+func (o *objectDataset) PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error {
+	return printToYamlFromObjectInstance(op, otyp, obj)
+}
+
 type objectTypeDataset struct{}
 
 var ObjectTypeDataset ObjectType = &objectTypeDataset{}
@@ -62,7 +68,7 @@ var ObjectTypeDataset ObjectType = &objectTypeDataset{}
 var propertyDescDataset = []PropertyDesc{
 	{"id", PropertyTypeInteger, false, true, func(o any) any { return o.(*objectDataset).Id }, func(o any, v any) { o.(*objectDataset).Id = v.(int64) }},
 	{"path", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Path }, func(o any, v any) { o.(*objectDataset).Path = v.(string) }},
-	{"workspace", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).Workspace }, func(o any, v any) { o.(*objectDataset).Workspace = v.(int64) }},
+	{"workspaceId", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).WorkspaceId }, func(o any, v any) { o.(*objectDataset).WorkspaceId = v.(int64) }},
 	{"folderId", PropertyTypeInteger, false, false, func(o any) any { return o.(*objectDataset).FolderId }, func(o any, v any) { o.(*objectDataset).FolderId = v.(int64) }},
 	{"name", PropertyTypeString, false, false, func(o any) any { return o.(*objectDataset).Name }, func(o any, v any) { o.(*objectDataset).Name = v.(string) }},
 	{"kind", PropertyTypeString, true, false, func(o any) any { return o.(*objectDataset).Kind }, func(o any, v any) { o.(*objectDataset).Kind = v.(string) }},
@@ -132,12 +138,13 @@ func (*objectTypeDataset) Help() string {
 }
 func (*objectTypeDataset) CanList() bool                   { return true }
 func (*objectTypeDataset) CanGet() bool                    { return true }
+func (*objectTypeDataset) CanCreate() bool                 { return false }
+func (*objectTypeDataset) CanUpdate() bool                 { return false }
+func (*objectTypeDataset) CanDelete() bool                 { return false }
 func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"id", "path"} }
-func (*objectTypeDataset) GetProperties() []PropertyDesc {
-	return propertyDescDataset
-}
+func (*objectTypeDataset) GetProperties() []PropertyDesc   { return propertyDescDataset }
 
-func (ot *objectTypeDataset) List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error) {
+func (ot *objectTypeDataset) List(cfg *Config, op Output, hc httpClient) ([]*ObjectInfo, error) {
 	obj, err := gqlQuery(cfg, op, hc, `query Dataset_List { datasetSearch { dataset { id name path } } }`, object{}, "data", "datasetSearch")
 	if err != nil || obj == nil {
 		return nil, err
@@ -148,12 +155,18 @@ func (ot *objectTypeDataset) List(cfg *Config, op Output, hc *http.Client) ([]*O
 	namep := getpropdesc(ot, "name")
 	pathp := getpropdesc(ot, "path")
 	for _, ds := range cu {
-		ret = append(ret, unpackInfo(ds.(object)["dataset"], idp, namep, idp, pathp))
+		ret = append(ret, unpackInfo(
+			ds.(object)["dataset"],
+			idp,
+			namep,
+			idp,
+			pathp,
+		))
 	}
 	return ret, nil
 }
 
-func (ot *objectTypeDataset) Get(cfg *Config, op Output, hc *http.Client, id string) (ObjectInstance, error) {
+func (ot *objectTypeDataset) Get(cfg *Config, op Output, hc httpClient, id string) (ObjectInstance, error) {
 	obj, err := gqlQuery(cfg, op, hc, `query Dataset_Get_Id($id: ObjectId!) { dataset(id: $id) { id name:label workspace:workspaceId path kind description validFromField validToField labelField iconUrl version updatedDate pathCost managedById folderId } }`, object{"id": id}, "data", "dataset")
 	if err != nil {
 		return nil, err
@@ -162,4 +175,16 @@ func (ot *objectTypeDataset) Get(cfg *Config, op Output, hc *http.Client, id str
 		return nil, nil
 	}
 	return unpackObject(obj.(object), &objectDataset{}, ot.TypeName()), nil
+}
+
+func (ot *objectTypeDataset) Create(cfg *Config, op Output, hc httpClient, input object) (ObjectInstance, error) {
+	return nil, nil
+}
+
+func (ot *objectTypeDataset) Update(cfg *Config, op Output, hc httpClient, id string, input object) (ObjectInstance, error) {
+	return nil, nil
+}
+
+func (ot *objectTypeDataset) Delete(cfg *Config, op Output, hc httpClient, id string) error {
+	return nil
 }

@@ -9,7 +9,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
@@ -95,7 +94,7 @@ func InitConfigFromFileAndFlags(cfg *Config, op *DefaultOutput) {
 		cfg.Debug = *FlagDebug
 	}
 	if pflag.Lookup("workspace").Changed || *FlagWorkspace != "" {
-		cfg.Workspace = *FlagWorkspace
+		cfg.WorkspaceIdOrName = *FlagWorkspace
 	}
 	*op = DefaultOutput{EnableDebug: cfg.Debug, DisableInfo: cfg.Quiet, DataOutput: os.Stdout}
 }
@@ -126,7 +125,7 @@ func SendOutputToFile(path string, op *DefaultOutput) func() {
 // Because this uses RunRecoverWithTag, it will call output.Exit()
 // if there is an error; if you use CaptureOutput, this will turn
 // into a panic.
-func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client) {
+func RunCommandWithConfig(cfg *Config, fs fileSystem, op Output, args []string, hc httpClient) {
 	if len(args) > 0 && (args[0] == "-" || args[0] == "--") {
 		args = args[1:]
 	}
@@ -136,7 +135,7 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 	}
 	cmd := FindCommand(args[0])
 	if cmd == nil {
-		fmt.Fprintf(os.Stderr, "\nobserve: there is no command named %q\n\n", args[0])
+		fmt.Fprintf(os.Stderr, "\nobserve: there is no command named %q for object type %s\n\n", args[0], args[1])
 		help()
 	}
 	var errors []string
@@ -170,6 +169,6 @@ func RunCommandWithConfig(cfg *Config, op Output, args []string, hc *http.Client
 			}
 			args = append([]string{args[0]}, cmd.Flags.Args()...)
 		}
-		return cmd.Func(cfg, o, args, hc)
+		return cmd.Func(FuncArgs{cfg, fs, o, args, hc})
 	})
 }

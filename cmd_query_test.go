@@ -9,14 +9,14 @@ import (
 func TestCmdQueryEmpty(t *testing.T) {
 	fix := startFixture(t)
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"query"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"query"}, fix.hc)
 	})
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-i", "40000062"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"query", "-i", "40000062"}, fix.hc)
 	})
 	flagQueryInputs = nil // reset flags after parse
 	mustPanic(t, func() {
-		RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-q", "filter true"}, fix.hc)
+		RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"query", "-q", "filter true"}, fix.hc)
 	})
 	flagQueryText = "" // reset flags after parse
 	fix.Assert()
@@ -24,9 +24,9 @@ func TestCmdQueryEmpty(t *testing.T) {
 
 func TestCmdQueryText(t *testing.T) {
 	fix := startFixture(t,
-		testRequest{"/v1/meta/export/query", 200, "timestamp,log\n2023-04-20T16:20:00Z,\"this, is a message!\"\n"},
+		testRequest{`/v1/meta/export/query\?.*`, 200, "timestamp,log\n2023-04-20T16:20:00Z,\"this, is a message!\"\n"},
 	)
-	RunCommandWithConfig(fix.cfg, fix.op, []string{"query", "-i", "40000062", "-q", ""}, fix.hc)
+	RunCommandWithConfig(fix.cfg, fix.fs, fix.op, []string{"query", "-i", "40000062", "-q", ""}, fix.hc)
 	flagQueryInputs = nil // reset flags after parse
 	flagQueryText = ""    // reset flags after parse
 	fix.Assert()

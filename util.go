@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 	"golang.org/x/term"
 )
 
@@ -101,8 +104,8 @@ func CountFlags(fs *pflag.FlagSet, flags ...string) int {
 	return n
 }
 
-func LoadQueryTextFromFile(filepath string) (string, error) {
-	buf, err := os.ReadFile(filepath)
+func LoadQueryTextFromFile(fs fileSystem, filepath string) (string, error) {
+	buf, err := fs.ReadFile(filepath)
 	return string(buf), err
 }
 
@@ -243,4 +246,19 @@ func must[T any](t T, e error) T {
 		panic(fmt.Errorf("unexpected error: %w", e))
 	}
 	return t
+}
+
+// note: this sorts in place
+func sorted[E constraints.Ordered](s []E) []E {
+	slices.Sort(s)
+	return s
+}
+
+// http.Header.Set() doesn't return the Header object, so it's not usable inline
+func headers(args ...string) http.Header {
+	ret := http.Header{}
+	for i := 0; i != len(args); i += 2 {
+		ret.Set(args[i], args[i+1])
+	}
+	return ret
 }

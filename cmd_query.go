@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -66,8 +65,7 @@ var ErrAnInputIsRequired = ObserveError{Msg: "at least one --input is required"}
 var ErrQueryTooManyFormats = ObserveError{Msg: "at most one of --format and the format-specific flags may be specified"}
 var ErrUnknownFormat = ObserveError{Msg: "the --format is not known"}
 
-func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
-
+func cmdQuery(fa FuncArgs) error {
 	nowTime := time.Now().Truncate(time.Second)
 	// parse query arguments
 
@@ -82,7 +80,7 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	case 1:
 		// I have to grudgingly accept this
 		if flagsQuery.Lookup("file").Changed {
-			queryText, err = LoadQueryTextFromFile(flagQueryFile)
+			queryText, err = LoadQueryTextFromFile(fa.fs, flagQueryFile)
 		} else {
 			queryText = flagQueryText
 		}
@@ -169,26 +167,25 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 				InputName: pieces[0],
 				DatasetID: &i64,
 			})
-			op.Debug("input[%d] @%s <- datasetId(%d)\n", i, pieces[0], i64)
+			fa.op.Debug("input[%d] @%s <- datasetId(%d)\n", i, pieces[0], i64)
 		} else {
-			if strings.Index(pieces[1], ".") == -1 {
-				op.Debug("default workspace=%s\n", cfg.Workspace)
-				if cfg.Workspace != "" {
-					pieces[1] = cfg.Workspace + "." + pieces[1]
-				}
+			if !strings.Contains(pieces[1], ".") {
+				workspaceName := mustGetWorkspaceName(fa.cfg, fa.hc)
+				fa.op.Debug("default workspace=%s\n", workspaceName)
+				pieces[1] = workspaceName + "." + pieces[1]
 			}
 			inputs = append(inputs, StageQueryInput{
 				InputName:   pieces[0],
 				DatasetPath: &pieces[1],
 			})
-			op.Debug("input[%d] @%s <- datasetPath(%q)\n", i, pieces[0], pieces[1])
+			fa.op.Debug("input[%d] @%s <- datasetPath(%q)\n", i, pieces[0], pieces[1])
 		}
 	}
 
 	// I'm now ready to formulate the query
 	noLinkify := false
 	req := V1ExportQueryRequest{
-		Query: Query{
+		Query: OpalQuery{
 			OutputStage: "query",
 			Stages: []StageQuery{
 				{
@@ -205,23 +202,23 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 
 	nfmts := 0
 	if flagQueryFormat != "" {
-		op.Debug("formatFlag=%s\n", flagQueryFormat)
+		fa.op.Debug("formatFlag=%s\n", flagQueryFormat)
 		nfmts++
 	}
 	if flagQueryJSON {
-		op.Debug("format=JSON\n")
+		fa.op.Debug("format=JSON\n")
 		nfmts++
 	}
 	if flagQueryCSV {
-		op.Debug("format=CSV\n")
+		fa.op.Debug("format=CSV\n")
 		nfmts++
 	}
 	if flagQueryExtended {
-		op.Debug("format=Extended\n")
+		fa.op.Debug("format=Extended\n")
 		nfmts++
 	}
 	if nfmts > 1 {
-		op.Debug("too many formats: %d\n", nfmts)
+		fa.op.Debug("too many formats: %d\n", nfmts)
 		return ErrQueryTooManyFormats
 	}
 	// I know that if flagQueryFormat is non-empty, none of the format flags are specified
@@ -241,29 +238,26 @@ func cmdQuery(cfg *Config, op Output, args []string, hc *http.Client) error {
 	acceptHeader := "text/csv"
 	switch {
 	case flagQueryJSON:
-		output = op
+		output = fa.op
 		acceptHeader = "application/x-ndjson"
 	case flagQueryCSV:
-		output = op
+		output = fa.op
 	default:
 		// text format
-		tfmt := &CSVParsingColumnFormatter{ColumnFormatter: ColumnFormatter{Output: op, ColWidth: flagQueryColWidth, ExtendedFormat: flagQueryExtended, LiteralStrings: flagQueryLiteralStrings}}
+		tfmt := &CSVParsingColumnFormatter{ColumnFormatter: ColumnFormatter{Output: fa.op, ColWidth: flagQueryColWidth, ExtendedFormat: flagQueryExtended, LiteralStrings: flagQueryLiteralStrings}}
 		defer tfmt.Close()
 		output = tfmt
 	}
 
 	uri := fmt.Sprintf("/v1/meta/export/query?startTime=%s&endTime=%s", fromTime.Format(time.RFC3339), toTime.Format(time.RFC3339))
-	err, _ = RequestPOSTWithBodyOutput(cfg, op, hc, uri, &req, map[string]string{
-		"Accept":        acceptHeader,
-		"Authorization": cfg.AuthHeader(),
-	}, output)
+	err, _ = RequestPOSTWithBodyOutput(fa.cfg, fa.op, fa.hc, uri, &req, headers("Accept", acceptHeader, "Authorization", fa.cfg.AuthHeader()), output)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-type Query struct {
+type OpalQuery struct {
 	OutputStage string `json:"outputStage"`
 	// The API wants this marshaled as an array, but we only do one stage,
 	// because inline stages are now a thing.
@@ -297,7 +291,7 @@ type Presentation struct {
 }
 
 type V1ExportQueryRequest struct {
-	Query Query `json:"query"`
+	Query OpalQuery `json:"query"`
 	// no rowCount
 	Presentation *Presentation `json:"presentation,omitempty"`
 }

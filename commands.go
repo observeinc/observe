@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 
@@ -18,13 +17,21 @@ type Command struct {
 	Flags *pflag.FlagSet
 	// The function will be given the config, the output printer, and remaining arguments,
 	// where the subcommand name is the first string.
-	Func func(cfg *Config, op Output, args []string, hc *http.Client) error
+	Func func(fa FuncArgs) error
 	// This command doens't make use of authtoken (and maybe not customerid or site)
 	Unauthenticated bool
 	// This command isn't shown as part of help
 	Unlisted bool
 	// Loaded large documentation blob
 	Docs []byte
+}
+
+type FuncArgs struct {
+	cfg  *Config
+	fs   fileSystem
+	op   Output
+	args []string
+	hc   httpClient
 }
 
 var allCommands []*Command

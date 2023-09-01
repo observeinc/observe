@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -35,11 +34,11 @@ var (
 	ErrCannotList        = ObserveError{Msg: "cannot list this object type"}
 )
 
-func cmdList(cfg *Config, op Output, args []string, hc *http.Client) error {
-	if len(args) != 2 && len(args) != 3 {
+func cmdList(fa FuncArgs) error {
+	if len(fa.args) != 2 && len(fa.args) != 3 {
 		return ErrListUsage
 	}
-	otyp := GetObjectType(args[1])
+	otyp := GetObjectType(fa.args[1])
 	if otyp == nil {
 		return ErrUnknownObjectType
 	}
@@ -47,23 +46,23 @@ func cmdList(cfg *Config, op Output, args []string, hc *http.Client) error {
 		return ErrCannotList
 	}
 	match := ""
-	if len(args) > 2 {
-		match = strings.ToLower(args[2])
-		op.Debug("match=%s\n", match)
+	if len(fa.args) > 2 {
+		match = strings.ToLower(fa.args[2])
+		fa.op.Debug("match=%s\n", match)
 	}
-	infos, err := otyp.List(cfg, op, hc)
+	infos, err := otyp.List(fa.cfg, fa.op, fa.hc)
 	if err != nil {
 		return NewObserveError(err, "list objects")
 	}
 	var out TableFormatter
 	if flagListJSON {
 		out = &JSONFormatter{
-			Output:         op,
+			Output:         fa.op,
 			ExtendedFormat: flagListExtended,
 		}
 	} else {
 		out = &ColumnFormatter{
-			Output:          op,
+			Output:          fa.op,
 			OmitLineDrawing: true,
 			ColWidth:        flagListColWidth,
 			ExtendedFormat:  flagListExtended,

@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"reflect"
 	"sort"
 )
 
@@ -13,10 +11,15 @@ type ObjectType interface {
 	Help() string
 
 	CanList() bool
-	List(cfg *Config, op Output, hc *http.Client) ([]*ObjectInfo, error)
+	List(cfg *Config, op Output, hc httpClient) ([]*ObjectInfo, error)
 	CanGet() bool
-	Get(cfg *Config, op Output, hc *http.Client, id string) (ObjectInstance, error)
-	// TODO: Add Create, Put, Delete
+	Get(cfg *Config, op Output, hc httpClient, id string) (ObjectInstance, error)
+	CanCreate() bool
+	Create(cfg *Config, op Output, hc httpClient, input object) (ObjectInstance, error)
+	CanUpdate() bool
+	Update(cfg *Config, op Output, hc httpClient, id string, input object) (ObjectInstance, error)
+	CanDelete() bool
+	Delete(cfg *Config, op Output, hc httpClient, id string) error
 
 	GetPresentationLabels() []string
 	GetProperties() []PropertyDesc
@@ -31,6 +34,8 @@ type ObjectInfo struct {
 type ObjectInstance interface {
 	GetInfo() *ObjectInfo
 	GetValues() []PropertyInstance
+	PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error
+	GetStore() object
 }
 
 var objectTypes = map[string]ObjectType{}
@@ -95,30 +100,6 @@ func unpackObject(rsp object, tgt any, tname string) ObjectInstance {
 	return tgt.(ObjectInstance)
 }
 
-var fieldTypeInteger = &propertyTypeInteger{}
-var fieldTypeString = &propertyTypeString{}
-var fieldTypeBoolean = &propertyTypeBoolean{}
-
-var integerType = reflect.TypeOf(int64(0))
-var stringType = reflect.TypeOf("")
-var booleanType = reflect.TypeOf(false)
-
-func getFieldType(t reflect.Type) PropertyType {
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-	switch {
-	case t == integerType:
-		return fieldTypeInteger
-	case t == stringType:
-		return fieldTypeString
-	case t == booleanType:
-		return fieldTypeBoolean
-	default:
-		panic(fmt.Sprintf("unsupported field type %s", t.Name()))
-	}
-}
-
 func calcHasConfig(props []PropertyDesc) bool {
 	for _, p := range props {
 		if !p.IsId && !p.IsComputed {
@@ -163,4 +144,40 @@ func writeObjectTypeDocs(op Output, ot ObjectType) {
 			}
 		}
 	}
+}
+
+// given an input object in "deep" form, unpack it given the propmap, to "flat"
+// form.
+func propmapObject(src any, propmap PropertyMap) (ret object, err error) {
+	ret = make(object)
+	for dstKey, srcPath := range propmap {
+		ret[dstKey], err = unpackProppath(src, srcPath)
+		if err != nil {
+			return nil, NewObserveError(err, "property %q", dstKey)
+		}
+	}
+	return ret, nil
+}
+
+// given a recursive object, unpack it based on the path, returning the
+// terminal "leaf" value.
+func unpackProppath(cur any, srcPath proppath) (any, error) {
+	for _, key := range srcPath {
+		if cur == nil {
+			// if we try to index a nil, that's no bueno
+			return nil, NewObserveError(ErrNotAnObject, "path %q", srcPath)
+		}
+		obj, is := cur.(object)
+		if !is {
+			// if we try to index a non-object, that's no bueno
+			return nil, NewObserveError(ErrNotAnObject, "path %q", srcPath)
+		}
+		cur, is = obj[key]
+		if !is {
+			// if we don't have the property at all, that's no bueno
+			return nil, NewObserveError(ErrNotAnObject, "path %q", srcPath)
+		}
+		// but it's OK if we have the property, with a nil value, if it's the final leaf
+	}
+	return cur, nil
 }

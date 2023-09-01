@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,12 +13,12 @@ import (
 var ErrCouldNotParseConfig = ObserveError{Msg: "could not parse config"}
 
 type Config struct {
-	CustomerIdStr string `json:"customerid" yaml:"customerid"`
-	SiteStr       string `json:"site" yaml:"site"`
-	AuthtokenStr  string `json:"authtoken" yaml:"authtoken"`
-	Quiet         bool   `json:"quiet" yaml:"quiet"`
-	Debug         bool   `json:"debug" yaml:"debug"`
-	Workspace     string `json:"workspace" yaml:"workspace"`
+	CustomerIdStr     string `json:"customerid" yaml:"customerid"`
+	SiteStr           string `json:"site" yaml:"site"`
+	AuthtokenStr      string `json:"authtoken" yaml:"authtoken"`
+	Quiet             bool   `json:"quiet" yaml:"quiet"`
+	Debug             bool   `json:"debug" yaml:"debug"`
+	WorkspaceIdOrName string `json:"workspace" yaml:"workspace"`
 	// Don't forget to add new fields into ParseConfig(), they're not
 	// automatically read into this struct!
 }
@@ -74,8 +75,8 @@ func ParseConfig(data []byte, cfg *Config, path string, profile string, required
 		if s.Debug {
 			cfg.Debug = s.Debug
 		}
-		if s.Workspace != "" {
-			cfg.Workspace = s.Workspace
+		if s.WorkspaceIdOrName != "" {
+			cfg.WorkspaceIdOrName = s.WorkspaceIdOrName
 		}
 		return nil
 	}
@@ -85,8 +86,8 @@ func ParseConfig(data []byte, cfg *Config, path string, profile string, required
 	return nil
 }
 
-func ReadUntypedConfig(strPath string, required bool) (map[string]any, error) {
-	data, err := os.ReadFile(strPath)
+func ReadUntypedConfigFromFile(fs fileSystem, strPath string, required bool) (map[string]any, error) {
+	data, err := fs.ReadFile(strPath)
 	if err != nil {
 		if !required {
 			return nil, nil
@@ -96,26 +97,80 @@ func ReadUntypedConfig(strPath string, required bool) (map[string]any, error) {
 	buf := bytes.NewBuffer(data)
 	dec := yaml.NewDecoder(buf)
 	var ret map[string]any
-	if err = dec.Decode(&ret); err != nil {
+	if err := dec.Decode(&ret); err != nil {
 		return nil, err
 	}
 	return ret, nil
 }
 
-func SaveUntypedConfig(strPath string, config map[string]any) error {
-	os.MkdirAll(path.Dir(strPath), 0775)
+func SaveUntypedConfig(fs fileSystem, strPath string, config map[string]any) error {
+	fs.MkdirAll(path.Dir(strPath), 0775)
 	buf := bytes.NewBuffer(nil)
 	enc := yaml.NewEncoder(buf)
 	enc.SetIndent(2)
 	if err := enc.Encode(config); err != nil {
 		return NewObserveError(err, "failed to encode config")
 	}
-	if err := os.WriteFile(strPath+".tmp", buf.Bytes(), 0664); err != nil {
+	if err := fs.WriteFile(strPath+".tmp", buf.Bytes(), 0664); err != nil {
 		return NewObserveError(err, "failed to write config")
 	}
-	os.Remove(strPath)
-	if err := os.Rename(strPath+".tmp", strPath); err != nil {
+	fs.Remove(strPath)
+	if err := fs.Rename(strPath+".tmp", strPath); err != nil {
 		return NewObserveError(err, "failed to save config")
 	}
 	return nil
+}
+
+// mustGetWorkspaceId will attempt to fetch the workspace.id from the config, else it will
+// query the workspaces in the customer and attempt to find it by name, else it will default
+// to the first workspace in the list.
+func mustGetWorkspaceId(cfg *Config, hc httpClient) string {
+	// Maybe the ID is already configured.
+	if cfg.WorkspaceIdOrName != "" {
+		_, err := strconv.Atoi(cfg.WorkspaceIdOrName)
+		isId := err == nil
+		if isId {
+			return cfg.WorkspaceIdOrName
+		}
+	}
+	// WorkspaceIdOrName is a Name or empty.
+	// Get all the workspaces, attempt to find one with the name=`cfg.WorkspaceIdOrName`
+	var op DefaultOutput
+	workspaces, err := ObjectTypeWorkspace.List(cfg, op, hc)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load workspaces for customer:%s", cfg.CustomerIdStr))
+	}
+	for _, workspace := range workspaces {
+		if workspace.Name == cfg.WorkspaceIdOrName {
+			return workspace.Id
+		}
+	}
+	return workspaces[0].Id
+}
+
+// mustGetWorkspaceName will attempt to fetch the workspace.name from the config, else it will
+// query the workspaces in the customer and attempt to find it by id, else it will default
+// to the first workspace in the list.
+func mustGetWorkspaceName(cfg *Config, hc httpClient) string {
+	// Maybe the Name is already configured.
+	if cfg.WorkspaceIdOrName != "" {
+		_, err := strconv.Atoi(cfg.WorkspaceIdOrName)
+		isName := err != nil
+		if isName {
+			return cfg.WorkspaceIdOrName
+		}
+	}
+	// WorkspaceIdOrName is an ID or empty.
+	// Get all the workspaces, attempt to find one with the id=`cfg.WorkspaceIdOrName`
+	var op DefaultOutput
+	workspaces, err := ObjectTypeWorkspace.List(cfg, op, hc)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load workspaces for customer:%s", cfg.CustomerIdStr))
+	}
+	for _, workspace := range workspaces {
+		if workspace.Id == cfg.WorkspaceIdOrName {
+			return workspace.Name
+		}
+	}
+	return workspaces[0].Name
 }

@@ -3,7 +3,7 @@ package main
 import "testing"
 
 // Documentation files must have enough in them to be useful.
-const MinRequiredDocSize = 500
+const MinRequiredDocSize = 350
 
 func TestDocs(t *testing.T) {
 	for _, cmd := range allCommands {

@@ -35,14 +35,23 @@ func (*propertyTypeORN) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil
 	}
-	str, is := i.(string)
-	if !is {
-		return "", ErrIsNotORN
+	switch v := i.(type) {
+	case *string:
+		if v == nil {
+			return "null", nil
+		}
+		if !reORN.MatchString(*v) {
+			return "", ErrIsNotORN
+		}
+		return strconv.Quote(*v), nil
+	case string:
+		if !reORN.MatchString(v) {
+			return "", ErrIsNotORN
+		}
+		return strconv.Quote(v), nil
+	default:
+		return "", ErrIsNotString
 	}
-	if !reORN.MatchString(str) {
-		return "", ErrIsNotORN
-	}
-	return strconv.Quote(str), nil
 }
 
 func (*propertyTypeORN) FromString(s string) (any, error) {

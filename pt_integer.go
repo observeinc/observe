@@ -22,11 +22,17 @@ func (*propertyTypeInteger) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil
 	}
-	i64, is := i.(int64)
-	if !is {
+	switch v := i.(type) {
+	case *int64:
+		if v == nil {
+			return "null", nil
+		}
+		return strconv.FormatInt(*v, 10), nil
+	case int64:
+		return strconv.FormatInt(v, 10), nil
+	default:
 		return "", ErrIsNotInteger
 	}
-	return strconv.FormatInt(i64, 10), nil
 }
 
 func (*propertyTypeInteger) FromString(s string) (any, error) {

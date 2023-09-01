@@ -24,11 +24,17 @@ func (*propertyTypeBoolean) ToString(i any) (string, error) {
 	if i == nil {
 		return "null", nil
 	}
-	boo, is := i.(bool)
-	if !is {
+	switch v := i.(type) {
+	case *bool:
+		if v == nil {
+			return "null", nil
+		}
+		return strconv.FormatBool(*v), nil
+	case bool:
+		return strconv.FormatBool(v), nil
+	default:
 		return "", ErrIsNotBoolean
 	}
-	return strconv.FormatBool(boo), nil
 }
 
 func (*propertyTypeBoolean) FromString(s string) (any, error) {

@@ -131,7 +131,7 @@ with `--config` or the environment variable `OBSERVE_CONFIG`.
 The name of each option within the profile is the same as the name of the
 corresponding command-line `config-option`. Here is an example:
 
-    profiles:
+    profile:
       default:
         customerid: "133742069123"
         site: "observeinc.com"

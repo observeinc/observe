@@ -3,17 +3,17 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
 	"strconv"
 )
 
-func gqlQuery(cfg *Config, op Output, hc *http.Client, q string, args object, path ...string) (any, error) {
+var ErrNotAnArray = ObserveError{Msg: "the 'data' is not an array"}
+var ErrNotAnObject = ObserveError{Msg: "the 'data' is not an object"}
+
+func gqlQuery(cfg *Config, op Output, hc httpClient, q string, args object, path ...string) (any, error) {
 	// format arguments as GraphQL request object
 	obj := object{"query": q, "variables": args}
 	buf := bytes.Buffer{}
-	err, _ := RequestPOSTWithBodyOutput(cfg, op, hc, "/v1/meta", obj, map[string]string{
-		"Authorization": "Bearer " + cfg.CustomerIdStr + " " + cfg.AuthtokenStr,
-	}, &buf)
+	err, _ := RequestPOSTWithBodyOutput(cfg, op, hc, "/v1/meta", obj, headers("Authorization", cfg.AuthHeader()), &buf)
 	data := buf.Bytes()
 	if len(data) > 0 {
 		op.Debug("payload=%s\n", data)
