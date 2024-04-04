@@ -1,0 +1,12 @@
+# Binaries for programs and plugins
+observe
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+*.test
+
+release/
+dist/
