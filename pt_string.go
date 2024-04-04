@@ -29,12 +29,12 @@ func (*propertyTypeString) Present(i any) (string, error) {
 
 func (*propertyTypeString) ToString(i any) (string, error) {
 	if i == nil {
-		return "null", nil
+		return "", nil
 	}
 	switch v := i.(type) {
 	case *string:
 		if v == nil {
-			return "null", nil
+			return "", nil
 		}
 		return strconv.Quote(*v), nil
 	case string:

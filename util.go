@@ -262,3 +262,49 @@ func headers(args ...string) http.Header {
 	}
 	return ret
 }
+
+func maybeIntStr(i *int64) string {
+	if i == nil {
+		return ""
+	}
+	return strconv.FormatInt(*i, 10)
+}
+
+func maybeStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func maybeAnyString(s any) *string {
+	if s == nil {
+		return nil
+	}
+	ret := s.(string)
+	return &ret
+}
+
+func maybeAnyInt(i any) *int64 {
+	if i == nil {
+		return nil
+	}
+	ret := i.(int64)
+	return &ret
+}
+
+func maybeStringAny(s *string) any {
+	if s == nil {
+		return nil
+	}
+	ret := *s
+	return ret
+}
+
+func maybeIntAny(i *int64) any {
+	if i == nil {
+		return nil
+	}
+	ret := *i
+	return ret
+}

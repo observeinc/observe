@@ -20,12 +20,12 @@ func (p *propertyTypeInteger) Present(i any) (string, error) {
 
 func (*propertyTypeInteger) ToString(i any) (string, error) {
 	if i == nil {
-		return "null", nil
+		return "", nil
 	}
 	switch v := i.(type) {
 	case *int64:
 		if v == nil {
-			return "null", nil
+			return "", nil
 		}
 		return strconv.FormatInt(*v, 10), nil
 	case int64:

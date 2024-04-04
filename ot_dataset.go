@@ -39,6 +39,7 @@ func (o *objectDataset) GetInfo() *ObjectInfo {
 		Id:           strconv.FormatInt(o.Id, 10),
 		Name:         o.Name,
 		Presentation: []string{strconv.FormatInt(o.Id, 10), o.Path},
+		Object:       o,
 	}
 }
 
@@ -49,10 +50,6 @@ func (o *objectDataset) GetValues() []PropertyInstance {
 		r[i] = &propertyInstance{p, o}
 	}
 	return r
-}
-
-func (o *objectDataset) GetStore() object {
-	return nil
 }
 
 func (o *objectDataset) PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error {
@@ -144,30 +141,26 @@ func (*objectTypeDataset) CanDelete() bool                 { return false }
 func (*objectTypeDataset) GetPresentationLabels() []string { return []string{"id", "path"} }
 func (*objectTypeDataset) GetProperties() []PropertyDesc   { return propertyDescDataset }
 
+var gqlListDataset = compileGqlQuery(`query Dataset_List { datasetSearch { dataset { id name path } } }`, "data", "datasetSearch")
+
 func (ot *objectTypeDataset) List(cfg *Config, op Output, hc httpClient) ([]*ObjectInfo, error) {
-	obj, err := gqlQuery(cfg, op, hc, `query Dataset_List { datasetSearch { dataset { id name path } } }`, object{}, "data", "datasetSearch")
+	obj, err := gqlListDataset.query(cfg, op, hc, object{})
 	if err != nil || obj == nil {
 		return nil, err
 	}
 	cu := obj.(array)
 	var ret []*ObjectInfo
-	idp := getpropdesc(ot, "id")
-	namep := getpropdesc(ot, "name")
-	pathp := getpropdesc(ot, "path")
 	for _, ds := range cu {
-		ret = append(ret, unpackInfo(
-			ds.(object)["dataset"],
-			idp,
-			namep,
-			idp,
-			pathp,
-		))
+		o := unpackObject(ds.(object), &objectDataset{}, ot.TypeName())
+		ret = append(ret, o.GetInfo())
 	}
 	return ret, nil
 }
 
+var gqlGetDataset = compileGqlQuery(`query Dataset_Get_Id($id: ObjectId!) { dataset(id: $id) { id name:label workspace:workspaceId path kind description validFromField validToField labelField iconUrl version updatedDate pathCost managedById folderId } }`, "data", "dataset")
+
 func (ot *objectTypeDataset) Get(cfg *Config, op Output, hc httpClient, id string) (ObjectInstance, error) {
-	obj, err := gqlQuery(cfg, op, hc, `query Dataset_Get_Id($id: ObjectId!) { dataset(id: $id) { id name:label workspace:workspaceId path kind description validFromField validToField labelField iconUrl version updatedDate pathCost managedById folderId } }`, object{"id": id}, "data", "dataset")
+	obj, err := gqlGetDataset.query(cfg, op, hc, object{"id": id})
 	if err != nil {
 		return nil, err
 	}

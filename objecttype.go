@@ -29,13 +29,13 @@ type ObjectInfo struct {
 	Id           string
 	Name         string
 	Presentation []string
+	Object       ObjectInstance
 }
 
 type ObjectInstance interface {
 	GetInfo() *ObjectInfo
 	GetValues() []PropertyInstance
 	PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error
-	GetStore() object
 }
 
 var objectTypes = map[string]ObjectType{}
@@ -72,18 +72,6 @@ func ForeachObjectType(fn func(ot ObjectType)) {
 	for _, typ := range GetObjectTypes() {
 		fn(typ)
 	}
-}
-
-func unpackInfo(obj any, idp PropertyDesc, namep PropertyDesc, props ...PropertyDesc) *ObjectInfo {
-	o := obj.(object)
-	ret := ObjectInfo{
-		Id:   must(idp.Type.Present(idp.Type.FromGQL(o[idp.Name]))),
-		Name: must(namep.Type.Present(namep.Type.FromGQL(o[namep.Name]))),
-	}
-	for _, p := range props {
-		ret.Presentation = append(ret.Presentation, must(p.Type.Present(p.Type.FromGQL(o[p.Name]))))
-	}
-	return &ret
 }
 
 // rsp is a map[string]any from a web request

@@ -22,12 +22,12 @@ func (p *propertyTypeBoolean) Present(i any) (string, error) {
 
 func (*propertyTypeBoolean) ToString(i any) (string, error) {
 	if i == nil {
-		return "null", nil
+		return "", nil
 	}
 	switch v := i.(type) {
 	case *bool:
 		if v == nil {
-			return "null", nil
+			return "", nil
 		}
 		return strconv.FormatBool(*v), nil
 	case bool:
@@ -38,7 +38,7 @@ func (*propertyTypeBoolean) ToString(i any) (string, error) {
 }
 
 func (*propertyTypeBoolean) FromString(s string) (any, error) {
-	if s == "null" {
+	if s == "" {
 		return nil, nil
 	}
 	if s == "true" {

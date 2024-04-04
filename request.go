@@ -57,6 +57,9 @@ func RequestPOSTWithBodyOutput[Req any](cfg *Config, op Output, hc httpClient, p
 	if err != nil {
 		return NewObserveError(err, "Error writing response"), hresp.StatusCode
 	}
+	if sfqid := hresp.Header.Get("X-Observe-Sfqid"); sfqid != "" {
+		op.Debug("X-Observe-Sfqid=%s\n", sfqid)
+	}
 	return err, hresp.StatusCode
 }
 

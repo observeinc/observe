@@ -51,6 +51,7 @@ func (o *objectDocument) GetInfo() *ObjectInfo {
 		Id:           o.Id,
 		Name:         o.Name,
 		Presentation: []string{o.Id, o.Usage, o.Name},
+		Object:       o,
 	}
 }
 
@@ -61,10 +62,6 @@ func (o *objectDocument) GetValues() []PropertyInstance {
 		r[i] = &propertyInstance{p, o}
 	}
 	return r
-}
-
-func (o *objectDocument) GetStore() object {
-	return nil
 }
 
 func (o *objectDocument) PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error {
@@ -113,18 +110,9 @@ func (ot *objectTypeDocument) List(cfg *Config, op Output, hc httpClient) ([]*Ob
 		return nil, err
 	}
 	var ret []*ObjectInfo
-	idp := getpropdesc(ot, "id")
-	usagep := getpropdesc(ot, "usage")
-	namep := getpropdesc(ot, "name")
 	for _, doc := range cu {
-		ret = append(ret, unpackInfo(
-			doc.(object),
-			idp,
-			namep,
-			idp,
-			usagep,
-			namep,
-		))
+		o := unpackObject(doc.(object), &objectDocument{}, ot.TypeName())
+		ret = append(ret, o.GetInfo())
 	}
 	return ret, nil
 }

@@ -20,6 +20,7 @@ func (o *objectWorkspace) GetInfo() *ObjectInfo {
 		Id:           strconv.FormatInt(o.Id, 10),
 		Name:         o.Name,
 		Presentation: []string{strconv.FormatInt(o.Id, 10), o.Name},
+		Object:       o,
 	}
 }
 
@@ -30,10 +31,6 @@ func (o *objectWorkspace) GetValues() []PropertyInstance {
 		r[i] = &propertyInstance{p, o}
 	}
 	return r
-}
-
-func (o *objectWorkspace) GetStore() object {
-	return nil
 }
 
 func (o *objectWorkspace) PrintToYaml(op Output, otyp ObjectType, obj ObjectInstance) error {
@@ -62,31 +59,26 @@ func (*objectTypeWorkspace) CanDelete() bool                 { return false }
 func (*objectTypeWorkspace) GetPresentationLabels() []string { return []string{"id", "name"} }
 func (*objectTypeWorkspace) GetProperties() []PropertyDesc   { return propertyDescWorkspace }
 
+var gqlListWorkspace = compileGqlQuery(`query Workspace_List { currentUser { workspaces { id name:label } } }`, "data", "currentUser", "workspaces")
+
 func (ot *objectTypeWorkspace) List(cfg *Config, op Output, hc httpClient) ([]*ObjectInfo, error) {
-	obj, err := gqlQuery(cfg, op, hc, `query Workspace_List { currentUser { workspaces { id name:label } } }`, object{}, "data", "currentUser", "workspaces")
+	obj, err := gqlListWorkspace.query(cfg, op, hc, object{})
 	if err != nil || obj == nil {
 		return nil, err
 	}
 	cu := obj.(array)
 	var ret []*ObjectInfo
-	idp := getpropdesc(ot, "id")
-	namep := getpropdesc(ot, "name")
 	for _, wks := range cu {
-		ret = append(ret, unpackInfo(
-			wks,
-			idp,
-			namep,
-			[]PropertyDesc{
-				idp,
-				namep,
-			}...,
-		))
+		o := unpackObject(wks.(object), &objectWorkspace{}, ot.TypeName())
+		ret = append(ret, o.GetInfo())
 	}
 	return ret, nil
 }
 
+var gqlGetWorkspace = compileGqlQuery(`query Workspace_Get_Id($id: ObjectId!) { workspace(id: $id) { id name:label timezone } }`, "data", "workspace")
+
 func (ot *objectTypeWorkspace) Get(cfg *Config, op Output, hc httpClient, id string) (ObjectInstance, error) {
-	obj, err := gqlQuery(cfg, op, hc, `query Workspace_Get_Id($id: ObjectId!) { workspace(id: $id) { id name:label timezone } }`, object{"id": id}, "data", "workspace")
+	obj, err := gqlGetWorkspace.query(cfg, op, hc, object{"id": id})
 	if err != nil {
 		return nil, err
 	}

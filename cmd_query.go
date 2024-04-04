@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -58,7 +59,7 @@ const MaxQueryTextLength = 100000
 var ErrNeedQueryOrFile = ObserveError{Msg: "need one of --query and --file for the query text"}
 var ErrOnlyOneQueryOrFile = ObserveError{Msg: "only one of --query and --file may be specified"}
 var ErrAtMostTwoTimeSpecifiers = ObserveError{Msg: "at most two of --start-time, --end-time, and --relative may be specified"}
-var ErrValidToMustBeAfterValidFrom = ObserveError{Msg: "--end-time time must be after --vaild-from time"}
+var ErrValidToMustBeAfterValidFrom = ObserveError{Msg: "--end-time time must be after --start-time time"}
 var ErrTooLongQueryText = ObserveError{Msg: fmt.Sprintf("the query text is longer than %d characters", MaxQueryTextLength)}
 var ErrAtMostOneOutputFormat = ObserveError{Msg: "at most one of --csv and --json may be specified"}
 var ErrAnInputIsRequired = ObserveError{Msg: "at least one --input is required"}
@@ -249,7 +250,9 @@ func cmdQuery(fa FuncArgs) error {
 		output = tfmt
 	}
 
-	uri := fmt.Sprintf("/v1/meta/export/query?startTime=%s&endTime=%s", fromTime.Format(time.RFC3339), toTime.Format(time.RFC3339))
+	uri := fmt.Sprintf("/v1/meta/export/query?startTime=%s&endTime=%s",
+		url.QueryEscape(fromTime.Format(time.RFC3339)),
+		url.QueryEscape(toTime.Format(time.RFC3339)))
 	err, _ = RequestPOSTWithBodyOutput(fa.cfg, fa.op, fa.hc, uri, &req, headers("Accept", acceptHeader, "Authorization", fa.cfg.AuthHeader()), output)
 	if err != nil {
 		return err

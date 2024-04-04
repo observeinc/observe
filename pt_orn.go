@@ -19,7 +19,7 @@ func (*propertyTypeORN) TypeName() string { return "orn" }
 
 func (*propertyTypeORN) Present(i any) (string, error) {
 	if i == nil {
-		return "null", nil
+		return "", nil
 	}
 	str, is := i.(string)
 	if !is {
@@ -33,12 +33,12 @@ func (*propertyTypeORN) Present(i any) (string, error) {
 
 func (*propertyTypeORN) ToString(i any) (string, error) {
 	if i == nil {
-		return "null", nil
+		return "", nil
 	}
 	switch v := i.(type) {
 	case *string:
 		if v == nil {
-			return "null", nil
+			return "", nil
 		}
 		if !reORN.MatchString(*v) {
 			return "", ErrIsNotORN
@@ -55,7 +55,7 @@ func (*propertyTypeORN) ToString(i any) (string, error) {
 }
 
 func (*propertyTypeORN) FromString(s string) (any, error) {
-	if s == "null" {
+	if s == "" {
 		return nil, nil
 	}
 	if len(s) < 2 {
