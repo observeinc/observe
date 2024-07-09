@@ -151,6 +151,9 @@ func (ot *objectTypeDataset) List(cfg *Config, op Output, hc httpClient) ([]*Obj
 	cu := obj.(array)
 	var ret []*ObjectInfo
 	for _, ds := range cu {
+		if dataset, found := ds.(object)["dataset"]; found {
+			ds = dataset
+		}
 		o := unpackObject(ds.(object), &objectDataset{}, ot.TypeName())
 		ret = append(ret, o.GetInfo())
 	}
